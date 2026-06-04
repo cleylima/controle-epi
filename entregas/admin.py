@@ -1,3 +1,14 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import EntregaEPI
+
+
+@admin.register(EntregaEPI)
+class EntregaAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'funcionario',
+        'epi',
+        'quantidade',
+        'data_entrega'
+    )

@@ -1,3 +1,50 @@
 from django.db import models
 
-# Create your models here.
+from funcionarios.models import Funcionario
+from estoque.models import EPI
+
+
+class EntregaEPI(models.Model):
+
+    MOTIVOS = [
+        ('primeira', 'Primeira Entrega'),
+        ('troca', 'Troca por Desgaste'),
+        ('perda', 'Perda'),
+        ('danificado', 'Danificado'),
+    ]
+
+    funcionario = models.ForeignKey(
+        Funcionario,
+        on_delete=models.CASCADE
+    )
+
+    epi = models.ForeignKey(
+        EPI,
+        on_delete=models.CASCADE
+    )
+
+    quantidade = models.PositiveIntegerField()
+
+    motivo = models.CharField(
+        max_length=20,
+        choices=MOTIVOS
+    )
+
+    data_entrega = models.DateField()
+
+    criado_em = models.DateTimeField(
+        auto_now_add=True
+        
+    )
+    
+    data_proxima_troca = models.DateField(
+        null=True,
+        blank=True
+    )
+    
+    
+
+    def __str__(self):
+        return f'{self.funcionario} - {self.epi}'
+    
+    

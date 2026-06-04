@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">
+    Nova Entrega de EPI
+</h2>
+
+<form method="post">
+
+    {% csrf_token %}
+
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        {{ form.errors }}
+    </div>
+    {% endif %}
+
+    <div class="card card-modern">
+
+        <div class="card-body">
+
+            {{ form.as_p }}
+
+            <button class="btn btn-success">
+                Registrar Entrega
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+{% endblock %}
