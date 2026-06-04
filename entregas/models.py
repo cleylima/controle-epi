@@ -3,8 +3,11 @@ from django.db import models
 from funcionarios.models import Funcionario
 from estoque.models import EPI
 
+from datetime import date
+
 
 class EntregaEPI(models.Model):
+    
 
     MOTIVOS = [
         ('primeira', 'Primeira Entrega'),
@@ -41,6 +44,24 @@ class EntregaEPI(models.Model):
         null=True,
         blank=True
     )
+    
+    @property
+    
+    def status_troca(self):
+
+        hoje = date.today()
+
+        if self.data_proxima_troca < hoje:
+            return 'vencido'
+
+        dias_restantes = (
+            self.data_proxima_troca - hoje
+        ).days
+
+        if dias_restantes <= 30:
+            return 'proximo'
+
+        return 'vigente'
     
     
 

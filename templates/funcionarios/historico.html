@@ -39,46 +39,71 @@
                     <th>Quantidade</th>
                     <th>Entrega</th>
                     <th>Próxima Troca</th>
+                    <th>Status</th>
                 </tr>
 
             </thead>
 
-            <tbody>
+           <tbody>
 
-                {% for entrega in entregas %}
+            {% for entrega in entregas %}
 
-                <tr>
+            <tr>
 
-                    <td>{{ entrega.epi.nome }}</td>
+                <td>{{ entrega.epi.nome }}</td>
 
-                    <td>{{ entrega.quantidade }}</td>
+                <td>{{ entrega.quantidade }}</td>
 
-                    <td>
-                        {{ entrega.data_entrega|date:"d/m/Y" }}
-                    </td>
+                <td>
+                    {{ entrega.data_entrega|date:"d/m/Y" }}
+                </td>
 
-                    <td>
-                        {{ entrega.data_proxima_troca|date:"d/m/Y" }}
-                    </td>
+                <td>
+                    {{ entrega.data_proxima_troca|date:"d/m/Y" }}
+                </td>
 
-                </tr>
+                <td>
 
-                {% empty %}
+                    {% if entrega.status_troca == 'vigente' %}
 
-                <tr>
+                        <span class="badge bg-success">
+                            Vigente
+                        </span>
 
-                    <td colspan="4"
-                        class="text-center">
+                    {% elif entrega.status_troca == 'proximo' %}
 
-                        Nenhum EPI entregue.
+                        <span class="badge bg-warning">
+                            Vence em breve
+                        </span>
 
-                    </td>
+                    {% else %}
 
-                </tr>
+                        <span class="badge bg-danger">
+                            Vencido
+                        </span>
 
-                {% endfor %}
+                    {% endif %}
 
-            </tbody>
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+
+                <td colspan="5"
+                    class="text-center">
+
+                    Nenhum EPI entregue.
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>'
 
         </table>
 
