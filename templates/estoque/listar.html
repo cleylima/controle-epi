@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h2>EPIs</h2>
+
+    <a href="{% url 'novo_epi' %}"
+       class="btn btn-primary">
+
+        + Novo EPI
+
+    </a>
+
+</div>
+
+<div class="card card-modern">
+
+    <div class="card-body">
+
+        <table class="table table-hover">
+
+            <thead>
+
+                <tr>
+                    <th>Nome</th>
+                    <th>CA</th>
+                    <th>Estoque</th>
+                    <th>Mínimo</th>
+                    <th>Ações</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for epi in epis %}
+
+                <tr>
+
+                    <td>{{ epi.nome }}</td>
+
+                    <td>{{ epi.ca }}</td>
+
+                    <td>
+
+                        {% if epi.quantidade_estoque <= epi.estoque_minimo %}
+
+                            <span class="badge bg-danger">
+                                {{ epi.quantidade_estoque }}
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-success">
+                                {{ epi.quantidade_estoque }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>{{ epi.estoque_minimo }}</td>
+
+                    <td>
+
+                        <a href="{% url 'editar_epi' epi.id %}"
+                           class="btn btn-warning btn-sm">
+
+                            Editar
+
+                        </a>
+
+                        <a href="{% url 'excluir_epi' epi.id %}"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('Deseja excluir este EPI?')">
+
+                            Excluir
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

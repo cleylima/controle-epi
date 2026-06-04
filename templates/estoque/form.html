@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">Cadastro de EPI</h2>
+
+<form method="post">
+
+    {% csrf_token %}
+
+    <div class="card card-modern">
+
+        <div class="card-body">
+
+            {{ form.as_p }}
+
+            <button class="btn btn-success">
+                Salvar
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+{% endblock %}

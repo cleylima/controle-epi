@@ -62,14 +62,27 @@
 
     <h4>🦺 Controle EPI</h4>
 
-    <a href="#">Dashboard</a>
-    <a href="/funcionarios/">
+    <a href="/">Dashboard</a>
+
+    <a href="{% url 'listar_funcionarios' %}">
         Funcionários
     </a>
-    <a href="#">EPIs</a>
-    <a href="#">Estoque</a>
-    <a href="#">Entregas</a>
-    <a href="#">Histórico</a>
+
+    <a href="{% url 'listar_epis' %}">
+        EPIs
+    </a>
+
+    <a href="{% url 'listar_epis' %}">
+        Estoque
+    </a>
+
+    <a href="#">
+        Entregas
+    </a>
+
+    <a href="#">
+        Histórico
+    </a>
 
 </div>
 
