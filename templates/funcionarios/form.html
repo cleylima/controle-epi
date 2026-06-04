@@ -6,13 +6,47 @@
 
 <form method="post">
 
-    {% csrf_token %}
+    <div class="card card-modern">
+    <div class="card-body">
 
-    {{ form.as_p }}
+        {% csrf_token %}
 
-    <button class="btn btn-success">
-        Salvar
-    </button>
+        <div class="mb-3">
+            {{ form.nome.label_tag }}
+            {{ form.nome }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.email.label_tag }}
+            {{ form.email }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.telefone.label_tag }}
+            {{ form.telefone }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.setor.label_tag }}
+            {{ form.setor }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.funcao.label_tag }}
+            {{ form.funcao }}
+        </div>
+
+        <div class="form-check mb-3">
+            {{ form.ativo }}
+            {{ form.ativo.label_tag }}
+        </div>
+
+        <button class="btn btn-success">
+            Salvar
+        </button>
+
+    </div>
+</div>
 
 </form>
 
