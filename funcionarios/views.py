@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from .models import Funcionario
 from .forms import FuncionarioForm
 from django.shortcuts import render, redirect, get_object_or_404
+from entregas.models import EntregaEPI
 
 
 def listar_funcionarios(request):
@@ -82,4 +83,25 @@ def excluir_funcionario(request, pk):
 
     return redirect(
         'listar_funcionarios'
+    )
+    
+
+def historico_funcionario(request, pk):
+
+    funcionario = get_object_or_404(
+        Funcionario,
+        pk=pk
+    )
+
+    entregas = EntregaEPI.objects.filter(
+        funcionario=funcionario
+    ).order_by('-data_entrega')
+
+    return render(
+        request,
+        'funcionarios/historico.html',
+        {
+            'funcionario': funcionario,
+            'entregas': entregas
+        }
     )
