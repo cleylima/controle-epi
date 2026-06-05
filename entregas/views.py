@@ -70,6 +70,10 @@ def nova_entrega(request):
             print("ERROS DO FORMULÁRIO:")
             print(form.errors)
 
+    else:
+
+        form = EntregaForm()
+
     return render(
         request,
         'entregas/form.html',

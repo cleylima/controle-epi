@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">
+    Dashboard
+</h2>
+
+<div class="row">
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card card-modern">
+
+            <div class="card-body">
+
+                <h6>Funcionários</h6>
+
+                <h2>
+                    {{ total_funcionarios }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card card-modern">
+
+            <div class="card-body">
+
+                <h6>EPIs</h6>
+
+                <h2>
+                    {{ total_epis }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card card-modern">
+
+            <div class="card-body">
+
+                <h6>Entregas</h6>
+
+                <h2>
+                    {{ total_entregas }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card card-modern">
+
+            <div class="card-body">
+
+                <h6>Estoque Baixo</h6>
+
+                <h2>
+                    {{ estoque_baixo }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <h4 class="mb-3">
+            ⚠ EPIs vencendo nos próximos 30 dias
+        </h4>
+
+        <table class="table">
+
+            <thead>
+
+                <tr>
+                    <th>Funcionário</th>
+                    <th>EPI</th>
+                    <th>Data Troca</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for entrega in epis_vencendo %}
+
+                <tr>
+
+                    <td>{{ entrega.funcionario.nome }}</td>
+
+                    <td>{{ entrega.epi.nome }}</td>
+
+                    <td>
+                        {{ entrega.data_proxima_troca|date:"d/m/Y" }}
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="3"
+                        class="text-center">
+
+                        Nenhum EPI vencendo nos próximos 30 dias.
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+{% endblock %}

@@ -46,7 +46,6 @@ class EntregaEPI(models.Model):
     )
     
     @property
-    
     def status_troca(self):
 
         hoje = date.today()
