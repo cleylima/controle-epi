@@ -6,8 +6,10 @@ from django.shortcuts import (
 
 from .models import EPI
 from .forms import EPIForm
+from django.contrib.auth.decorators import login_required
 
 
+@login_required
 def listar_epis(request):
 
     epis = EPI.objects.all()
@@ -20,7 +22,7 @@ def listar_epis(request):
         }
     )
 
-
+@login_required
 def novo_epi(request):
 
     if request.method == 'POST':
@@ -43,7 +45,7 @@ def novo_epi(request):
         }
     )
 
-
+@login_required
 def editar_epi(request, pk):
 
     epi = get_object_or_404(
@@ -77,6 +79,7 @@ def editar_epi(request, pk):
     )
 
 
+@login_required
 def excluir_epi(request, pk):
 
     epi = get_object_or_404(

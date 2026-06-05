@@ -3,8 +3,9 @@ from datetime import date, timedelta
 from funcionarios.models import Funcionario
 from estoque.models import EPI
 from entregas.models import EntregaEPI
+from django.contrib.auth.decorators import login_required
 
-
+@login_required
 def dashboard(request):
 
     total_funcionarios = Funcionario.objects.count()

@@ -6,8 +6,9 @@ from django.shortcuts import (
 from .forms import EntregaForm
 from .models import EntregaEPI
 from datetime import timedelta
+from django.contrib.auth.decorators import login_required
 
-
+@login_required
 def listar_entregas(request):
 
     entregas = EntregaEPI.objects.all()
@@ -20,7 +21,7 @@ def listar_entregas(request):
         }
     )
 
-
+@login_required
 def nova_entrega(request):
 
     if request.method == 'POST':

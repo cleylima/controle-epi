@@ -3,8 +3,9 @@ from .models import Funcionario
 from .forms import FuncionarioForm
 from django.shortcuts import render, redirect, get_object_or_404
 from entregas.models import EntregaEPI
+from django.contrib.auth.decorators import login_required
 
-
+@login_required
 def listar_funcionarios(request):
 
     funcionarios = Funcionario.objects.all()
@@ -17,7 +18,7 @@ def listar_funcionarios(request):
         }
     )
 
-
+@login_required
 def novo_funcionario(request):
 
     if request.method == 'POST':
@@ -38,7 +39,8 @@ def novo_funcionario(request):
             'form': form
         }
     )
-    
+
+@login_required
 def editar_funcionario(request, pk):
 
     funcionario = get_object_or_404(
@@ -72,6 +74,7 @@ def editar_funcionario(request, pk):
     )
 
 
+@login_required
 def excluir_funcionario(request, pk):
 
     funcionario = get_object_or_404(
@@ -86,6 +89,7 @@ def excluir_funcionario(request, pk):
     )
     
 
+@login_required
 def historico_funcionario(request, pk):
 
     funcionario = get_object_or_404(

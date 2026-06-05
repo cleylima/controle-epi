@@ -62,6 +62,18 @@
 
     <h4>🦺 Controle EPI</h4>
 
+    <div class="text-center mb-4">
+
+        <small class="text-muted">
+            Usuário Logado
+        </small>
+
+        <p class="fw-bold">
+            {{ request.user.username }}
+        </p>
+
+    </div>
+
     <a href="/">Dashboard</a>
 
     <a href="{% url 'listar_funcionarios' %}">
@@ -83,6 +95,24 @@
     <a href="#">
         Histórico
     </a>
+
+    <hr>
+
+        <form method="post"
+            action="{% url 'logout' %}"
+            class="px-3">
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="btn btn-danger w-100">
+
+                Sair
+
+            </button>
+
+        </form>
 
 </div>
 
