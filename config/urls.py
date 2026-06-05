@@ -12,4 +12,5 @@ urlpatterns = [
     path('entregas/', include('entregas.urls')),
     
     path('', include('usuarios.urls')),
+    path('usuarios/', include('usuarios.urls')),
 ]

@@ -2,7 +2,9 @@ from django.urls import path
 
 from .views import (
     MeuLoginView,
-    MeuLogoutView
+    MeuLogoutView,
+    listar_usuarios,
+    novo_usuario,
 )
 
 urlpatterns = [
@@ -17,6 +19,18 @@ urlpatterns = [
         'logout/',
         MeuLogoutView.as_view(),
         name='logout'
+    ),
+    
+    path(
+    '',
+    listar_usuarios,
+    name='listar_usuarios'
+    ),
+
+    path(
+        'novo/',
+        novo_usuario,
+        name='novo_usuario'
     ),
 
 ]

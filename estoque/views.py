@@ -174,10 +174,77 @@ def historico_movimentacoes(request):
         .order_by('-data_movimento')
     )
 
+    epi_id = request.GET.get('epi')
+
+    tipo = request.GET.get('tipo')
+
+    if epi_id:
+        movimentacoes = movimentacoes.filter(
+            epi_id=epi_id
+        )
+
+    if tipo:
+        movimentacoes = movimentacoes.filter(
+            tipo=tipo
+        )
+
+    epis = EPI.objects.all()
+
     return render(
         request,
         'estoque/historico_movimentacoes.html',
         {
-            'movimentacoes': movimentacoes
+            'movimentacoes': movimentacoes,
+            'epis': epis,
         }
     )
+    
+from django.http import HttpResponse
+from openpyxl import Workbook
+
+@login_required
+def exportar_movimentacoes_excel(request):
+
+    wb = Workbook()
+
+    ws = wb.active
+
+    ws.title = 'Movimentações'
+
+    ws.append([
+        'Data',
+        'EPI',
+        'Tipo',
+        'Quantidade',
+        'Usuário',
+        'Observação'
+    ])
+
+    movimentacoes = (
+        MovimentoEstoque.objects
+        .select_related('epi', 'usuario')
+        .order_by('-data_movimento')
+    )
+
+    for mov in movimentacoes:
+
+        ws.append([
+            mov.data_movimento.strftime('%d/%m/%Y %H:%M'),
+            mov.epi.nome,
+            mov.get_tipo_display(),
+            mov.quantidade,
+            mov.usuario.username if mov.usuario else '',
+            mov.observacao or '',
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    response[
+        'Content-Disposition'
+    ] = 'attachment; filename=historico_estoque.xlsx'
+
+    wb.save(response)
+
+    return response

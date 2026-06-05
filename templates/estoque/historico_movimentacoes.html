@@ -15,6 +15,102 @@
 
     </a>
 
+     <a
+        href="{% url 'exportar_movimentacoes_excel' %}"
+        class="btn btn-success">
+
+        📊 Exportar Excel
+
+    </a>
+
+</div>
+
+<div class="card card-modern mb-4">
+
+    <div class="card-body">
+
+        <form method="get">
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        EPI
+                    </label>
+
+                    <select
+                        name="epi"
+                        class="form-select">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        {% for epi in epis %}
+
+                        <option
+                            value="{{ epi.id }}"
+                            {% if request.GET.epi == epi.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ epi.nome }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Tipo
+                    </label>
+
+                    <select
+                        name="tipo"
+                        class="form-select">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="entrada">
+                            Entrada
+                        </option>
+
+                        <option value="saida">
+                            Saída
+                        </option>
+
+                        <option value="ajuste">
+                            Ajuste
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+
+                    <button
+                        class="btn btn-primary">
+
+                        Filtrar
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
 </div>
 
 <div class="card card-modern">

@@ -121,6 +121,22 @@
         Entregas
     </a>
 
+    {% if user.groups.all %}
+
+        {% for grupo in user.groups.all %}
+
+            {% if grupo.name == 'Administrador' %}
+
+                <a href="{% url 'listar_usuarios' %}">
+                    👤 Usuários
+                </a>
+
+            {% endif %}
+
+        {% endfor %}
+
+    {% endif %}
+
     <hr>
 
         <form method="post"

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h2>
+        Usuários
+    </h2>
+
+    <a
+        href="{% url 'novo_usuario' %}"
+        class="btn btn-primary">
+
+        + Novo Usuário
+
+    </a>
+
+</div>
+
+<div class="card card-modern">
+
+    <div class="card-body">
+
+        <table class="table table-hover">
+
+            <thead>
+
+                <tr>
+                    <th>Nome</th>
+                    <th>Usuário</th>
+                    <th>E-mail</th>
+                    <th>Status</th>
+                    <th>Perfil</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for usuario in usuarios %}
+
+                <tr>
+
+                    <td>
+                        {{ usuario.first_name }}
+                    </td>
+
+                    <td>
+                        {{ usuario.username }}
+                    </td>
+
+                    <td>
+                        {{ usuario.email }}
+                    </td>
+
+                    <td>
+
+                        {% if usuario.is_active %}
+
+                        <span class="badge bg-success">
+                            Ativo
+                        </span>
+
+                        {% else %}
+
+                        <span class="badge bg-danger">
+                            Inativo
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% for grupo in usuario.groups.all %}
+
+                            {{ grupo.name }}
+
+                        {% empty %}
+
+                            Sem Perfil
+
+                        {% endfor %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

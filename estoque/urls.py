@@ -8,6 +8,7 @@ from .views import (
     controle_estoque,
     nova_movimentacao,
     historico_movimentacoes,
+    exportar_movimentacoes_excel,
 )
 
 urlpatterns = [
@@ -53,4 +54,11 @@ urlpatterns = [
         historico_movimentacoes,
         name='historico_movimentacoes'
     ),
+    
+    path(
+        'historico/exportar/',
+        exportar_movimentacoes_excel,
+        name='exportar_movimentacoes_excel'
+    ),
+    
 ]
