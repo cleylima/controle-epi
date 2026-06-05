@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h2>Nova Movimentação de Estoque</h2>
+
+</div>
+
+<div class="card card-modern col-lg-8">
+
+    <div class="card-body">
+
+        <form method="post">
+
+            {% csrf_token %}
+            {% if form.errors %}
+                <div class="alert alert-danger">
+
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label">
+                    EPI
+                </label>
+                {{ form.epi }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Tipo
+                </label>
+                {{ form.tipo }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Quantidade
+                </label>
+                {{ form.quantidade }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Observação
+                </label>
+                {{ form.observacao }}
+            </div>
+
+            <button class="btn btn-success">
+                Salvar Movimentação
+            </button>
+
+            <a href="{% url 'historico_movimentacoes' %}"
+               class="btn btn-secondary">
+                Cancelar
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

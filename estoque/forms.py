@@ -31,3 +31,4 @@ class EPIForm(forms.ModelForm):
             'quantidade_estoque': forms.NumberInput(attrs={'class': 'form-control'}),
             'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+        

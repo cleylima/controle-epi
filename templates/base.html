@@ -65,6 +65,11 @@
             border-radius:15px;
             box-shadow:0 2px 10px rgba(0,0,0,0.08);
         }
+        .form-control:focus,
+        .form-select:focus{
+            box-shadow:none;
+            border-color:#2563eb;
+        }
     </style>
 
 </head>
@@ -105,6 +110,10 @@
     <a href="{% url 'controle_estoque' %}" class="{% if '/estoque/controle/' in request.path %}active{% endif %}">
         <i class="bi bi-box-seam"></i>
         Estoque
+    </a>
+
+    <a href="{% url 'historico_movimentacoes' %}">
+        📋 Histórico Estoque
     </a>
 
    <a href="{% url 'listar_entregas' %}" class="{% if '/entregas/' in request.path %}active{% endif %}">

@@ -5,7 +5,9 @@ from .views import (
     novo_epi,
     editar_epi,
     excluir_epi,
-    controle_estoque
+    controle_estoque,
+    nova_movimentacao,
+    historico_movimentacoes,
 )
 
 urlpatterns = [
@@ -38,5 +40,17 @@ urlpatterns = [
         'controle/',
         controle_estoque,
         name='controle_estoque'
+    ),
+    
+    path(
+        'movimentacao/nova/',
+        nova_movimentacao,
+        name='nova_movimentacao'
+    ),
+    
+    path(
+        'historico/',
+        historico_movimentacoes,
+        name='historico_movimentacoes'
     ),
 ]

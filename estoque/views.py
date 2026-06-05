@@ -4,8 +4,9 @@ from django.shortcuts import (
     get_object_or_404
 )
 
-from .models import EPI
+from .models import EPI, MovimentoEstoque
 from .forms import EPIForm
+from .forms_movimento import MovimentoEstoqueForm
 from django.contrib.auth.decorators import login_required
 
 
@@ -103,5 +104,80 @@ def controle_estoque(request):
         'estoque/controle_estoque.html',
         {
             'epis': epis
+        }
+    )
+    
+@login_required
+def nova_movimentacao(request):
+
+    if request.method == 'POST':
+
+        form = MovimentoEstoqueForm(request.POST)
+
+        if form.is_valid():
+
+            movimento = form.save(commit=False)
+
+            movimento.usuario = request.user
+
+            epi = movimento.epi
+
+            if movimento.tipo == 'entrada':
+
+                epi.quantidade_estoque += movimento.quantidade
+
+            elif movimento.tipo == 'saida':
+
+                if movimento.quantidade > epi.quantidade_estoque:
+
+                    form.add_error(
+                        'quantidade',
+                        'Quantidade maior que o estoque disponível.'
+                    )
+
+                    return render(
+                        request,
+                        'estoque/movimentacao_form.html',
+                        {'form': form}
+                    )
+
+                epi.quantidade_estoque -= movimento.quantidade
+
+            elif movimento.tipo == 'ajuste':
+
+                epi.quantidade_estoque = movimento.quantidade
+
+            epi.save()
+
+            movimento.save()
+
+            return redirect('controle_estoque')
+
+    else:
+
+        form = MovimentoEstoqueForm()
+
+    return render(
+        request,
+        'estoque/movimentacao_form.html',
+        {
+            'form': form
+        }
+    )
+    
+@login_required
+def historico_movimentacoes(request):
+
+    movimentacoes = (
+        MovimentoEstoque.objects
+        .select_related('epi', 'usuario')
+        .order_by('-data_movimento')
+    )
+
+    return render(
+        request,
+        'estoque/historico_movimentacoes.html',
+        {
+            'movimentacoes': movimentacoes
         }
     )
