@@ -92,3 +92,16 @@ def excluir_epi(request, pk):
     return redirect(
         'listar_epis'
     )
+    
+@login_required
+def controle_estoque(request):
+
+    epis = EPI.objects.all()
+
+    return render(
+        request,
+        'estoque/controle_estoque.html',
+        {
+            'epis': epis
+        }
+    )

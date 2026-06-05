@@ -4,7 +4,8 @@ from .views import (
     listar_epis,
     novo_epi,
     editar_epi,
-    excluir_epi
+    excluir_epi,
+    controle_estoque
 )
 
 urlpatterns = [
@@ -31,5 +32,11 @@ urlpatterns = [
         'excluir/<int:pk>/',
         excluir_epi,
         name='excluir_epi'
+    ),
+    
+    path(
+        'controle/',
+        controle_estoque,
+        name='controle_estoque'
     ),
 ]

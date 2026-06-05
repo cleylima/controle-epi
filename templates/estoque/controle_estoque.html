@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">
+    Controle de Estoque
+</h2>
+
+<div class="card card-modern">
+
+    <div class="card-body">
+
+        <table class="table table-hover">
+
+            <thead>
+
+                <tr>
+                    <th>EPI</th>
+                    <th>Estoque Atual</th>
+                    <th>Estoque Mínimo</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for epi in epis %}
+
+                <tr>
+
+                    <td>{{ epi.nome }}</td>
+
+                    <td>{{ epi.quantidade_estoque }}</td>
+
+                    <td>{{ epi.estoque_minimo }}</td>
+
+                    <td>
+
+                        {% if epi.quantidade_estoque <= epi.estoque_minimo %}
+
+                            <span class="badge bg-danger">
+                                Estoque Baixo
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-success">
+                                OK
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
