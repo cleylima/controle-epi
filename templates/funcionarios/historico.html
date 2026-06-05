@@ -4,6 +4,14 @@
 
 <h2>{{ funcionario.nome }}</h2>
 
+<a
+    href="{% url 'gerar_ficha_epi_pdf' funcionario.id %}"
+    class="btn btn-danger">
+
+    📄 Gerar Ficha PDF
+
+</a>
+
 <div class="card card-modern mb-4">
 
     <div class="card-body">

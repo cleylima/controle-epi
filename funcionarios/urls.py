@@ -6,7 +6,8 @@ from .views import (
     novo_funcionario,
     editar_funcionario,
     excluir_funcionario,
-    historico_funcionario
+    historico_funcionario,
+    gerar_ficha_epi_pdf,
 )
 
 urlpatterns = [
@@ -38,5 +39,11 @@ urlpatterns = [
         'historico/<int:pk>/',
         historico_funcionario,
         name='historico_funcionario'
+    ),
+    
+    path(
+        'ficha-pdf/<int:pk>/',
+        gerar_ficha_epi_pdf,
+        name='gerar_ficha_epi_pdf'
     ),
 ]
