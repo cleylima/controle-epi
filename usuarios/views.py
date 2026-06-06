@@ -82,7 +82,8 @@ def editar_usuario(request, pk):
     if request.method == 'POST':
 
         form = UsuarioForm(
-            request.POST
+            request.POST, 
+            instance=usuario
         )
 
         if form.is_valid():
@@ -116,12 +117,9 @@ def editar_usuario(request, pk):
             grupo_atual = usuario.groups.first()
 
         form = UsuarioForm(
+            instance=usuario,
             initial={
-                'first_name': usuario.first_name,
-                'username': usuario.username,
-                'email': usuario.email,
-                'is_active': usuario.is_active,
-                'grupo': grupo_atual,
+                'grupo': grupo_atual
             }
         )
 
