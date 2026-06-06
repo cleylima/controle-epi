@@ -3,10 +3,13 @@ from django.shortcuts import (
     redirect
 )
 
+
 from .forms import EntregaForm
 from .models import EntregaEPI
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
+import base64
+from django.core.files.base import ContentFile
 
 @login_required
 def listar_entregas(request):
@@ -33,6 +36,18 @@ def nova_entrega(request):
             print("FORMULÁRIO VÁLIDO")
 
             entrega = form.save(commit=False)
+            
+            print(request.POST.keys())
+            print(
+                "ASSINATURA POST:",
+                request.POST.get('assinatura_base64')
+            )
+            
+            assinatura_base64 = request.POST.get(
+                'assinatura_base64'
+            )
+            print("ASSINATURA RECEBIDA:",
+                bool(assinatura_base64))
 
             epi = entrega.epi
 
@@ -59,6 +74,20 @@ def nova_entrega(request):
                     entrega.data_entrega +
                     timedelta(days=epi.vida_util_dias)
                 )
+                
+                if assinatura_base64:
+
+                    formato, imgstr = assinatura_base64.split(';base64,')
+
+                    extensao = formato.split('/')[-1]
+
+                    entrega.assinatura.save(
+                        f'assinatura_{entrega.funcionario.id}.{extensao}',
+                        ContentFile(
+                            base64.b64decode(imgstr)
+                        ),
+                        save=False
+                    )
 
                 entrega.save()
 

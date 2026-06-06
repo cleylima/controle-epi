@@ -129,6 +129,7 @@ def gerar_ficha_epi_pdf(request, pk):
     from reportlab.platypus import Image
     from django.conf import settings
     import os
+    from reportlab.platypus import Image
 
     funcionario = get_object_or_404(
         Funcionario,
@@ -266,7 +267,38 @@ def gerar_ficha_epi_pdf(request, pk):
         )
     )
 
-    elementos.append(Spacer(1, 60))
+    elementos.append(Spacer(1, 30))
+    
+    ultima_entrega = entregas.first()
+    
+    print("ULTIMA ENTREGA:", ultima_entrega)
+
+    if ultima_entrega:
+        print("ASSINATURA:", ultima_entrega.assinatura)
+
+    if (
+        ultima_entrega and
+        ultima_entrega.assinatura
+    ):
+
+        # elementos.append(
+        #     Paragraph(
+        #         '<b>Assinatura do Colaborador</b>',
+        #         styles['Normal']
+        #     )
+        # )
+
+        assinatura_img = Image(
+            ultima_entrega.assinatura.path,
+            width=180,
+            height=80
+        )
+        assinatura_img.hAlign = 'LEFT'
+
+
+        elementos.append(assinatura_img)
+
+        elementos.append(Spacer(1, 20))
 
     # Assinaturas
 
@@ -277,7 +309,7 @@ def gerar_ficha_epi_pdf(request, pk):
                 '________________________'
             ],
             [
-                'Colaborador',
+                'Assinatura do Colaborador',
                 'Responsável pela Entrega'
             ]
         ],

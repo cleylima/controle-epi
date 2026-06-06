@@ -5,6 +5,18 @@ from .models import EntregaEPI
 
 class EntregaForm(forms.ModelForm):
 
+    from django import forms
+
+    from .models import EntregaEPI
+
+
+class EntregaForm(forms.ModelForm):
+
+    assinatura_base64 = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
+
     class Meta:
 
         model = EntregaEPI

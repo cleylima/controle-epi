@@ -45,6 +45,12 @@ class EntregaEPI(models.Model):
         blank=True
     )
     
+    assinatura = models.ImageField(
+        upload_to='assinaturas/',
+        null=True,
+        blank=True
+    )
+    
     @property
     def status_troca(self):
 

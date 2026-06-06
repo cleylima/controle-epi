@@ -6,7 +6,7 @@
     Nova Entrega de EPI
 </h2>
 
-<form method="post">
+<form method="post" id="formEntrega">
 
     {% csrf_token %}
 
@@ -22,8 +22,44 @@
 
             {{ form.as_p }}
 
-            <button class="btn btn-success">
+            <hr>
+
+            <h5 class="mb-3">
+                Assinatura do Colaborador
+            </h5>
+
+            <canvas
+                id="assinaturaCanvas"
+                width="600"
+                height="200"
+                style="
+                    border: 2px solid #ccc;
+                    border-radius: 10px;
+                    width: 100%;
+                    max-width: 600px;
+                ">
+            </canvas>
+
+            <br><br>
+
+            <button
+                type="button"
+                id="limparAssinatura"
+                class="btn btn-secondary">
+
+                Limpar Assinatura
+
+            </button>
+
+
+            <hr>
+
+            <button
+                type="submit"
+                class="btn btn-success">
+
                 Registrar Entrega
+
             </button>
 
         </div>
@@ -31,5 +67,72 @@
     </div>
 
 </form>
+
+<script>
+
+const canvas = document.getElementById(
+    'assinaturaCanvas'
+);
+
+const ctx = canvas.getContext('2d');
+
+let desenhando = false;
+
+canvas.addEventListener('mousedown', () => {
+    desenhando = true;
+});
+
+canvas.addEventListener('mouseup', () => {
+    desenhando = false;
+
+    document.getElementById(
+        'id_assinatura_base64'
+    ).value = canvas.toDataURL();
+});
+
+canvas.addEventListener('mousemove', desenhar);
+
+function desenhar(event) {
+
+    if (!desenhando) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+
+    ctx.lineTo(
+        event.clientX - rect.left,
+        event.clientY - rect.top
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        event.clientX - rect.left,
+        event.clientY - rect.top
+    );
+}
+
+document
+    .getElementById('limparAssinatura')
+    .addEventListener('click', () => {
+
+        ctx.clearRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        document.getElementById(
+            'id_assinatura_base64'
+        ).value = '';
+    });
+
+
+</script>
 
 {% endblock %}
