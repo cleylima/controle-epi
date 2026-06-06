@@ -5,6 +5,8 @@ from .views import (
     MeuLogoutView,
     listar_usuarios,
     novo_usuario,
+    editar_usuario,
+    alternar_status_usuario,
 )
 
 urlpatterns = [
@@ -31,6 +33,18 @@ urlpatterns = [
         'novo/',
         novo_usuario,
         name='novo_usuario'
+    ),
+    
+    path(
+        'editar/<int:pk>/',
+        editar_usuario,
+        name='editar_usuario'
+    ),
+    
+    path(
+        'status/<int:pk>/',
+        alternar_status_usuario,
+        name='alternar_status_usuario'
     ),
 
 ]

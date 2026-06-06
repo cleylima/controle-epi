@@ -5,6 +5,7 @@ from django.contrib.auth.models import User, Group
 class UsuarioForm(forms.ModelForm):
 
     password = forms.CharField(
+        required=False,
         label='Senha',
         widget=forms.PasswordInput(
             attrs={

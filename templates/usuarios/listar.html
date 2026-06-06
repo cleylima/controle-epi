@@ -32,6 +32,7 @@
                     <th>E-mail</th>
                     <th>Status</th>
                     <th>Perfil</th>
+                    <th>Ações</th>
                 </tr>
 
             </thead>
@@ -83,6 +84,52 @@
                             Sem Perfil
 
                         {% endfor %}
+
+                    </td>
+
+                    <td>
+
+                        <a
+                            href="{% url 'editar_usuario' usuario.id %}"
+                            class="btn btn-sm btn-warning">
+
+                            Editar
+
+                        </a>
+
+                    </td>
+
+                    <td>
+
+                        <a
+                            href="{% url 'editar_usuario' usuario.id %}"
+                            class="btn btn-sm btn-warning">
+
+                            Editar
+
+                        </a>
+
+                        {% if usuario.is_active %}
+
+                            <a
+                                href="{% url 'alternar_status_usuario' usuario.id %}"
+                                class="btn btn-sm btn-danger">
+
+                                Inativar
+
+                            </a>
+
+                        {% else %}
+
+                            <a
+                                href="{% url 'alternar_status_usuario' usuario.id %}"
+                                class="btn btn-sm btn-success">
+
+                                Ativar
+
+                            </a>
+
+                        {% endif %}
 
                     </td>
 

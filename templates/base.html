@@ -106,7 +106,12 @@
         <i class="bi bi-shield-check"></i>
         EPIs
     </a>
-
+    
+    <a href="{% url 'listar_entregas' %}" class="{% if '/entregas/' in request.path %}active{% endif %}">
+         <i class="bi bi-truck"></i>
+         Entregas
+    </a>
+    
     <a href="{% url 'controle_estoque' %}" class="{% if '/estoque/controle/' in request.path %}active{% endif %}">
         <i class="bi bi-box-seam"></i>
         Estoque
@@ -116,10 +121,6 @@
         📋 Histórico Estoque
     </a>
 
-   <a href="{% url 'listar_entregas' %}" class="{% if '/entregas/' in request.path %}active{% endif %}">
-        <i class="bi bi-truck"></i>
-        Entregas
-    </a>
 
     {% if user.groups.all %}
 
