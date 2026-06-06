@@ -80,6 +80,78 @@
 
     </div>
 
+    <div class="col-md-3 mb-3">
+
+    <div class="card border-danger">
+
+        <div class="card-body">
+
+            <h6>EPIs Vencidos</h6>
+
+            <h2>
+                {{ epis_vencidos }}
+            </h2>
+
+        </div>
+
+    </div>
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card border-warning">
+
+            <div class="card-body">
+
+                <h6>EPIs Vencendo</h6>
+
+                <h2>
+                    {{ epis_vencendo }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card border-danger">
+
+            <div class="card-body">
+
+                <h6>CAs Vencidos</h6>
+
+                <h2>
+                    {{ ca_vencidos }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <div class="card border-warning">
+
+            <div class="card-body">
+
+                <h6>CAs Vencendo</h6>
+
+                <h2>
+                    {{ ca_vencendo }}
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
     <div class="card-body">
 
         <h4 class="mb-3">
@@ -100,7 +172,7 @@
 
             <tbody>
 
-                {% for entrega in epis_vencendo %}
+                {% for entrega in epis_vencendo_lista %}
 
                 <tr>
 
