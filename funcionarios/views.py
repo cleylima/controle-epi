@@ -149,7 +149,7 @@ def gerar_ficha_epi_pdf(request, pk):
     response[
         'Content-Disposition'
     ] = (
-        f'attachment; '
+        f'inline; '
         f'filename=ficha_epi_{funcionario.id}.pdf'
     )
 

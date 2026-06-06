@@ -30,6 +30,7 @@
                     <th>Motivo</th>
                     <th>Data Entrega</th>
                     <th>Próxima Troca</th>
+                    <th>Ações</th>
                 </tr>
 
             </thead>
@@ -38,35 +39,48 @@
 
                 {% for entrega in entregas %}
 
-                <tr>
+                    <tr>
 
-                    <td>{{ entrega.funcionario }}</td>
+                        <td>{{ entrega.funcionario }}</td>
 
-                    <td>{{ entrega.epi }}</td>
+                        <td>{{ entrega.epi }}</td>
 
-                    <td>{{ entrega.quantidade }}</td>
+                        <td>{{ entrega.quantidade }}</td>
 
-                    <td>{{ entrega.get_motivo_display }}</td>
+                        <td>{{ entrega.get_motivo_display }}</td>
 
-                    <td>{{ entrega.data_entrega|date:"d/m/Y" }}</td>
+                        <td>{{ entrega.data_entrega|date:"d/m/Y" }}</td>
 
-                    <td>
-                        {{ entrega.data_proxima_troca|date:"d/m/Y" }}
-                    </td>
+                        <td>
+                            {{ entrega.data_proxima_troca|date:"d/m/Y" }}
+                        </td>
 
-                </tr>
+                        <td>
 
-                {% empty %}
+                            <a
+                                href="{% url 'gerar_entrega_pdf' entrega.id %}"
+                                target="_blank"
+                                class="btn btn-info btn-sm">
 
-                <tr>
+                                PDF
 
-                    <td colspan="6" class="text-center">
+                            </a>
 
-                        Nenhuma entrega registrada.
+                        </td>
 
-                    </td>
+                    </tr>
 
-                </tr>
+                    {% empty %}
+
+                    <tr>
+
+                        <td colspan="7" class="text-center">
+
+                            Nenhuma entrega registrada.
+
+                        </td>
+
+                    </tr>
 
                 {% endfor %}
 

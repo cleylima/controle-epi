@@ -3,7 +3,20 @@ from django.shortcuts import (
     redirect
 )
 
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    Image
+)
 
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from .forms import EntregaForm
 from .models import EntregaEPI
 from datetime import timedelta
@@ -111,3 +124,129 @@ def nova_entrega(request):
             'form': form
         }
     )
+    
+@login_required
+def gerar_entrega_pdf(request, pk):
+
+    entrega = get_object_or_404(
+        EntregaEPI,
+        pk=pk
+    )
+
+    response = HttpResponse(
+        content_type='application/pdf'
+    )
+
+    response[
+        'Content-Disposition'
+    ] = (
+        f'inline; filename=entrega_{entrega.id}.pdf'
+    )
+
+    doc = SimpleDocTemplate(response)
+
+    styles = getSampleStyleSheet()
+
+    elementos = []
+
+    elementos.append(
+        Paragraph(
+            'COMPROVANTE DE ENTREGA DE EPI',
+            styles['Title']
+        )
+    )
+
+    elementos.append(
+        Spacer(1, 20)
+    )
+
+    elementos.append(
+        Paragraph(
+            f'<b>Funcionário:</b> {entrega.funcionario.nome}',
+            styles['Normal']
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            f'<b>Setor:</b> {entrega.funcionario.setor}',
+            styles['Normal']
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            f'<b>Função:</b> {entrega.funcionario.funcao}',
+            styles['Normal']
+        )
+    )
+
+    elementos.append(
+        Spacer(1, 20)
+    )
+
+    dados = [
+
+        ['Campo', 'Informação'],
+
+        ['EPI', entrega.epi.nome],
+
+        ['Quantidade', str(entrega.quantidade)],
+
+        ['Motivo', entrega.get_motivo_display()],
+
+        ['Data Entrega',
+         entrega.data_entrega.strftime('%d/%m/%Y')],
+
+        ['Próxima Troca',
+         entrega.data_proxima_troca.strftime('%d/%m/%Y')],
+    ]
+
+    tabela = Table(
+        dados,
+        colWidths=[150, 300]
+    )
+
+    tabela.setStyle(
+        TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0),
+             colors.lightgrey),
+
+            ('GRID', (0, 0), (-1, -1),
+             1, colors.black),
+
+            ('FONTNAME', (0, 0), (-1, 0),
+             'Helvetica-Bold'),
+        ])
+    )
+
+    elementos.append(tabela)
+
+    if entrega.assinatura:
+
+        elementos.append(
+            Spacer(1, 30)
+        )
+
+        elementos.append(
+            Paragraph(
+                '<b>Assinatura do Colaborador</b>',
+                styles['Normal']
+            )
+        )
+
+        assinatura = Image(
+            entrega.assinatura.path,
+            width=180,
+            height=80
+        )
+
+        assinatura.hAlign = 'LEFT'
+
+        elementos.append(
+            assinatura
+        )
+
+    doc.build(elementos)
+
+    return response

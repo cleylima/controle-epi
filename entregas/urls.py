@@ -2,7 +2,8 @@ from django.urls import path
 
 from .views import (
     listar_entregas,
-    nova_entrega
+    nova_entrega,
+    gerar_entrega_pdf,
 )
 
 urlpatterns = [
@@ -17,6 +18,12 @@ urlpatterns = [
         'nova/',
         nova_entrega,
         name='nova_entrega'
+    ),
+    
+    path(
+        'pdf/<int:pk>/',
+        gerar_entrega_pdf,
+        name='gerar_entrega_pdf'
     ),
 
 ]
