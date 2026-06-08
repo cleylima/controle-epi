@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card">
+
+    <div class="card-body">
+
+        <h2>
+            Confirmar Recebimento
+        </h2>
+
+        <hr>
+
+        <p>
+            <strong>Funcionário:</strong>
+            {{ entrega.funcionario.nome }}
+        </p>
+
+        <p>
+            <strong>EPI:</strong>
+            {{ entrega.epi.nome }}
+        </p>
+
+        <p>
+            <strong>Quantidade:</strong>
+            {{ entrega.quantidade }}
+        </p>
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <button
+                class="btn btn-success">
+
+                Confirmar Recebimento
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

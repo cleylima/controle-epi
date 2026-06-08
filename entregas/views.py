@@ -12,9 +12,10 @@ from reportlab.platypus import (
     Image
 )
 
+from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
-
+import uuid
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from .forms import EntregaForm
@@ -23,6 +24,10 @@ from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 import base64
 from django.core.files.base import ContentFile
+
+import qrcode
+from io import BytesIO
+from django.http import HttpResponse
 
 @login_required
 def listar_entregas(request):
@@ -86,6 +91,11 @@ def nova_entrega(request):
                 entrega.data_proxima_troca = (
                     entrega.data_entrega +
                     timedelta(days=epi.vida_util_dias)
+                )
+                
+
+                entrega.token_confirmacao = str(
+                    uuid.uuid4()
                 )
                 
                 if assinatura_base64:
@@ -250,3 +260,61 @@ def gerar_entrega_pdf(request, pk):
     doc.build(elementos)
 
     return response
+
+def confirmar_recebimento(request, token):
+
+    entrega = get_object_or_404(
+        EntregaEPI,
+        token_confirmacao=token
+    )
+
+    if request.method == 'POST':
+
+        entrega.confirmado = True
+
+        entrega.data_confirmacao = (
+            timezone.now()
+        )
+
+        entrega.save()
+
+        return render(
+            request,
+            'entregas/confirmado.html',
+            {
+                'entrega': entrega
+            }
+        )
+
+    return render(
+        request,
+        'entregas/confirmar.html',
+        {
+            'entrega': entrega
+        }
+    )
+    
+@login_required
+def qr_confirmacao(request, pk):
+
+    entrega = get_object_or_404(
+        EntregaEPI,
+        pk=pk
+    )
+
+    url = (
+        request.build_absolute_uri('/')
+        .rstrip('/')
+        + f'/entregas/confirmar/{entrega.token_confirmacao}/'
+    )
+
+    qr = qrcode.make(url)
+
+    buffer = BytesIO()
+
+    qr.save(buffer, format='PNG')
+
+    return HttpResponse(
+        buffer.getvalue(),
+        content_type='image/png'
+    )

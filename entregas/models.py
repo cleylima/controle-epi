@@ -51,6 +51,20 @@ class EntregaEPI(models.Model):
         blank=True
     )
     
+    confirmado = models.BooleanField(
+    default=False
+    )
+
+    data_confirmacao = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    token_confirmacao = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
     @property
     def status_troca(self):
 
@@ -67,7 +81,6 @@ class EntregaEPI(models.Model):
             return 'proximo'
 
         return 'vigente'
-    
     
 
     def __str__(self):

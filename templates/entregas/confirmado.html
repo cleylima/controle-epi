@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="alert alert-success">
+
+    <h3>
+        Recebimento confirmado!
+    </h3>
+
+    <p>
+
+        {{ entrega.funcionario.nome }}
+
+        confirmou o recebimento do EPI
+
+        {{ entrega.epi.nome }}
+
+    </p>
+
+</div>
+
+{% endblock %}
