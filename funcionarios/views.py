@@ -270,12 +270,57 @@ def gerar_ficha_epi_pdf(request, pk):
     elementos.append(Spacer(1, 30))
     
     ultima_entrega = entregas.first()
-    
-    print("ULTIMA ENTREGA:", ultima_entrega)
 
     if ultima_entrega:
-        print("ASSINATURA:", ultima_entrega.assinatura)
 
+        status = (
+            'SIM'
+            if ultima_entrega.confirmado
+            else 'NÃO'
+        )
+
+        elementos.append(
+            Paragraph(
+                f'<b>Recebimento Confirmado:</b> {status}',
+                styles['Normal']
+            )
+        )
+
+        if ultima_entrega.data_confirmacao:
+
+            elementos.append(
+                Paragraph(
+                    (
+                        '<b>Data da Confirmação:</b> '
+                        f'{ultima_entrega.data_confirmacao.strftime("%d/%m/%Y %H:%M")}'
+                    ),
+                    styles['Normal']
+                )
+            )
+
+        if ultima_entrega.token_confirmacao:
+
+            elementos.append(
+                Paragraph(
+                    (
+                        '<b>Token de Confirmação:</b> '
+                        f'{ultima_entrega.token_confirmacao}'
+                    ),
+                    styles['Normal']
+                )
+            )
+
+            elementos.append(
+                Paragraph(
+                    '<b>Método de Confirmação:</b> QR Code',
+                    styles['Normal']
+                )
+            )
+
+        elementos.append(
+            Spacer(1, 20)
+        )
+    
     if (
         ultima_entrega and
         ultima_entrega.assinatura

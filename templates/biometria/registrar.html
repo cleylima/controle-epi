@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cadastro Biométrico</title>
+</head>
+<body>
+
+<h2>Cadastro Biométrico</h2>
+
+<button id="registrar">
+    Registrar Biometria
+</button>
+
+<script>
+
+document
+.getElementById('registrar')
+.addEventListener('click', async () => {
+
+    const response =
+        await fetch(
+            '/biometria/opcoes/{{ funcionario.id }}/'
+        );
+
+    const options =
+        await response.json();
+
+    options.challenge =
+        Uint8Array.from(
+            atob(options.challenge),
+            c => c.charCodeAt(0)
+        );
+
+    options.user.id =
+        Uint8Array.from(
+            atob(options.user.id),
+            c => c.charCodeAt(0)
+        );
+
+    try {
+
+        const credential =
+            await navigator.credentials.create({
+                publicKey: options
+            });
+
+        console.log(
+            credential
+        );
+
+        await fetch(
+            '/biometria/salvar/',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    funcionario_id:
+                        {{ funcionario.id }},
+
+                    credential_id:
+                        credential.id
+
+                })
+            }
+        );
+
+        alert(
+            'Biometria cadastrada com sucesso!'
+        );
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            'Falha ao capturar biometria.'
+        );
+    }
+
+});
+
+</script>
+
+</body>
+</html>

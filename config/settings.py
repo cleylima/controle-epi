@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-o(8w5v=)ai#i-odje%&oud6b%a!=i^&a7%@zgare!d&+x&1)4w
 DEBUG = True
 
 ALLOWED_HOSTS = [
-
+    '127.0.0.1',
+    'localhost',
     '10.0.30.85',
 
 ]
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     'estoque',
     'entregas',
     'usuarios',
+    'biometria',
 ]
 
 MIDDLEWARE = [

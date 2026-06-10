@@ -13,6 +13,8 @@ urlpatterns = [
     
     path('entregas/', include('entregas.urls')),
     
+    path('biometria/', include('biometria.urls')),
+    
     path('', include('usuarios.urls')),
     path('usuarios/', include('usuarios.urls')),
 ]

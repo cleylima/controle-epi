@@ -231,6 +231,59 @@ def gerar_entrega_pdf(request, pk):
     )
 
     elementos.append(tabela)
+    
+    elementos.append(
+        Spacer(1, 20)   
+    )
+
+    status = (
+        'SIM'
+        if entrega.confirmado
+        else 'NÃO'
+    )
+
+    elementos.append(
+        Paragraph(
+            f'<b>Recebimento Confirmado:</b> {status}',
+            styles['Normal']
+        )
+    )
+
+    if entrega.data_confirmacao:
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>Data da Confirmação:</b> '
+                    f'{entrega.data_confirmacao.strftime("%d/%m/%Y %H:%M")}'
+                ),
+                styles['Normal']
+            )
+        )
+
+    if entrega.metodo_confirmacao:
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>Método de Confirmação:</b> '
+                    f'{entrega.get_metodo_confirmacao_display()}'
+                ),
+                styles['Normal']
+            )
+        )
+
+    if entrega.token_confirmacao:
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>Token:</b> '
+                    f'{entrega.token_confirmacao}'
+                ),
+                styles['Normal']
+            )
+        )
 
     if entrega.assinatura:
 
@@ -275,6 +328,7 @@ def confirmar_recebimento(request, token):
         entrega.data_confirmacao = (
             timezone.now()
         )
+        entrega.metodo_confirmacao = 'qr_code'
 
         entrega.save()
 

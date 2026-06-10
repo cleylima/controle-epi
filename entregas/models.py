@@ -65,8 +65,35 @@ class EntregaEPI(models.Model):
         blank=True,
         null=True
     )
+    
+    metodo_confirmacao = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True
+        )
+
+    biometria_confirmada = models.BooleanField(
+        default=False
+    )
+    
+    METODOS_CONFIRMACAO = [
+        ('assinatura', 'Assinatura'),
+        ('qr_code', 'QR Code'),
+        ('biometria', 'Biometria'),
+    ]
+
+    metodo_confirmacao = models.CharField(
+        max_length=20,
+        choices=METODOS_CONFIRMACAO,
+        blank=True,
+        null=True
+    )
+    
     @property
     def status_troca(self):
+
+        if not self.data_proxima_troca:
+            return 'sem_data'
 
         hoje = date.today()
 
