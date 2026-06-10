@@ -320,6 +320,12 @@ def confirmar_recebimento(request, token):
         EntregaEPI,
         token_confirmacao=token
     )
+    
+    if entrega.token_confirmacao is None:
+        return render(
+            request,
+            'entregas/token_expirado.html'
+        )
 
     if request.method == 'POST':
 
@@ -329,6 +335,7 @@ def confirmar_recebimento(request, token):
             timezone.now()
         )
         entrega.metodo_confirmacao = 'qr_code'
+        entrega.token_confirmacao = None
 
         entrega.save()
 

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'public/base_public.html' %}
 
 {% block content %}
 
@@ -27,12 +27,17 @@
             {{ entrega.quantidade }}
         </p>
 
-        <form method="post">
+        <form method="post" id="formConfirmacao">
 
             {% csrf_token %}
 
-            <button id="btnBiometria">
+            <button
+                type="button"
+                id="btnBiometria"
+                class="btn btn-success">
+
                 Confirmar com Biometria
+
             </button>
 
         </form>
@@ -40,5 +45,48 @@
     </div>
 
 </div>
+
+<script>
+
+document
+.getElementById('btnBiometria')
+.addEventListener('click', async () => {
+
+    try {
+
+        const response =
+            await fetch(
+                '/biometria/autenticar/opcoes/{{ entrega.funcionario.id }}/'
+            );
+
+        const options =
+            await response.json();
+
+        console.log(options);
+
+        alert(
+            'Biometria encontrada para o funcionário.'
+        );
+
+        document
+            .getElementById(
+                'formConfirmacao'
+            )
+            .submit();
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            'Falha na autenticação biométrica.'
+        );
+    }
+
+});
+
+</script>
 
 {% endblock %}

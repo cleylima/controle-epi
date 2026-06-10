@@ -26,4 +26,10 @@ urlpatterns = [
         views.salvar_biometria,
         name='salvar_biometria'
     ),
+    
+    path(
+        'autenticar/opcoes/<int:funcionario_id>/',
+        views.opcoes_autenticacao,
+        name='opcoes_autenticacao'
+    ),
 ]

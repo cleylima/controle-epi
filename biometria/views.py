@@ -8,7 +8,7 @@ from .models import CredencialBiometrica
 from funcionarios.models import Funcionario
 
 from webauthn import (
-    generate_registration_options
+    generate_registration_options, generate_authentication_options
 )
 
 
@@ -23,13 +23,13 @@ def registrar_biometria(
     )
 
     options = generate_registration_options(
-        rp_id='localhost',
+        rp_id='10.0.30.93',
         rp_name='Controle EPI',
         user_id=str(funcionario.id).encode(),
         user_name=funcionario.nome,
     )
 
-    
+    print("OPÇÕES DE AUTENTICAÇÃO GERADAS")
 
     request.session[
         'registration_challenge'
@@ -158,4 +158,46 @@ def salvar_biometria(request):
 
     return JsonResponse({
         'status': 'erro'
+    })
+    
+def opcoes_autenticacao(
+    request,
+    funcionario_id
+):
+
+    funcionario = get_object_or_404(
+        Funcionario,
+        pk=funcionario_id
+    )
+
+    credencial = (
+        CredencialBiometrica.objects
+        .filter(funcionario=funcionario)
+        .first()
+    )
+
+    if not credencial:
+
+        return JsonResponse(
+            {
+                'erro': 'Funcionário sem biometria cadastrada.'
+            },
+            status=400
+        )
+
+    options = generate_authentication_options(
+        rp_id='10.0.30.93'
+    )
+
+    request.session[
+        'authentication_challenge'
+    ] = base64.b64encode(
+        options.challenge
+    ).decode()
+
+    return JsonResponse({
+        'challenge':
+            base64.b64encode(
+                options.challenge
+            ).decode()
     })
