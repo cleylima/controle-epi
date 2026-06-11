@@ -23,19 +23,23 @@ def dashboard(request):
     data_limite = hoje + timedelta(days=30)
 
     epis_vencidos = EntregaEPI.objects.filter(
+        ativo=True,
         data_proxima_troca__lt=hoje
     ).count()
     
     epis_vencendo_lista = EntregaEPI.objects.filter(
+        ativo=True,
         data_proxima_troca__gte=hoje,
         data_proxima_troca__lte=data_limite
-    ).order_by('data_proxima_troca')
+    )
+
+    for item in epis_vencendo_lista:
+
+        item.dias_restantes = (
+            item.data_proxima_troca - hoje
+        ).days
+
     epis_vencendo = epis_vencendo_lista.count()
-    
-    epis_vencendo = EntregaEPI.objects.filter(
-        data_proxima_troca__gte=hoje,
-        data_proxima_troca__lte=data_limite
-    ).count()
 
     ca_vencidos = EPI.objects.filter(
         validade_ca__lt=hoje
@@ -45,6 +49,18 @@ def dashboard(request):
         validade_ca__gte=hoje,
         validade_ca__lte=data_limite
     ).count()
+    
+    entregas_pendentes = (
+        EntregaEPI.objects
+        .filter(confirmado=False)
+        .count()
+    )
+    
+    pendencias = (
+        EntregaEPI.objects
+        .filter(confirmado=False)
+        .order_by('-data_entrega')[:10]
+    )
 
     context = {
         'total_funcionarios': total_funcionarios,
@@ -58,7 +74,9 @@ def dashboard(request):
         'ca_vencidos': ca_vencidos,
         'ca_vencendo': ca_vencendo,
         'epis_vencendo_lista': epis_vencendo_lista,
-
+        
+        'entregas_pendentes': entregas_pendentes,
+        'pendencias': pendencias,
     }
 
     return render(

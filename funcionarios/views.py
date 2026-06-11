@@ -79,11 +79,38 @@ def editar_funcionario(request, pk):
             instance=funcionario
         )
 
+    entregas = (
+        EntregaEPI.objects
+        .filter(funcionario=funcionario)
+        .order_by('-data_entrega')
+    )
+
+    total_entregas = entregas.count()
+
+    entregas_confirmadas = entregas.filter(
+        confirmado=True
+    ).count()
+
+    entregas_pendentes = entregas.filter(
+        confirmado=False
+    ).count()
+    
+    epis_ativos = entregas.filter(
+        ativo=True
+    )
+
     return render(
         request,
         'funcionarios/form.html',
         {
-            'form': form
+            'form': form,
+            'funcionario': funcionario,
+            'entregas': entregas,
+            'total_entregas': total_entregas,
+            'entregas_confirmadas': entregas_confirmadas,
+            'entregas_pendentes': entregas_pendentes,
+            'epis_ativos': epis_ativos,
+        
         }
     )
 
@@ -285,42 +312,82 @@ def gerar_ficha_epi_pdf(request, pk):
                 styles['Normal']
             )
         )
-
-        if ultima_entrega.data_confirmacao:
-
-            elementos.append(
-                Paragraph(
-                    (
-                        '<b>Data da Confirmação:</b> '
-                        f'{ultima_entrega.data_confirmacao.strftime("%d/%m/%Y %H:%M")}'
-                    ),
-                    styles['Normal']
-                )
-            )
-
-        if ultima_entrega.token_confirmacao:
-
-            elementos.append(
-                Paragraph(
-                    (
-                        '<b>Token de Confirmação:</b> '
-                        f'{ultima_entrega.token_confirmacao}'
-                    ),
-                    styles['Normal']
-                )
-            )
-
-            elementos.append(
-                Paragraph(
-                    '<b>Método de Confirmação:</b> QR Code',
-                    styles['Normal']
-                )
-            )
+        
+    if ultima_entrega.metodo_confirmacao:
 
         elementos.append(
-            Spacer(1, 20)
+            Paragraph(
+                (
+                    '<b>Método de Confirmação:</b> '
+                    f'{ultima_entrega.get_metodo_confirmacao_display()}'
+                ),
+                styles['Normal']
+            )
         )
-    
+
+    if ultima_entrega.data_confirmacao:
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>Data da Confirmação:</b> '
+                    f'{ultima_entrega.data_confirmacao.strftime("%d/%m/%Y %H:%M")}'
+                ),
+                styles['Normal']
+            )
+        )
+        
+    if ultima_entrega.ip_confirmacao:
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>IP da Confirmação:</b> '
+                    f'{ultima_entrega.ip_confirmacao}'
+                ),
+                styles['Normal']
+            )
+        )
+        
+    if ultima_entrega.user_agent_confirmacao:
+
+        dispositivo = (
+            ultima_entrega.user_agent_confirmacao[:60]
+        )
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>Dispositivo:</b> '
+                    f'{dispositivo}...'
+                ),
+                styles['Normal']
+            )
+        )
+
+    if ultima_entrega.token_confirmacao:
+
+        elementos.append(
+            Paragraph(
+                (
+                    '<b>Token de Confirmação:</b> '
+                    f'{ultima_entrega.token_confirmacao}'
+                ),
+                styles['Normal']
+            )
+        )
+
+        elementos.append(
+            Paragraph(
+                '<b>Método de Confirmação:</b> QR Code',
+                styles['Normal']
+            )
+        )
+
+    elementos.append(
+        Spacer(1, 20)
+    )
+
     if (
         ultima_entrega and
         ultima_entrega.assinatura

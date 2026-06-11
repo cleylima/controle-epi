@@ -34,11 +34,17 @@ def listar_entregas(request):
 
     entregas = EntregaEPI.objects.all()
 
+    if request.GET.get('pendentes'):
+        entregas = entregas.filter(confirmado=False)
+    
+    pendentes = entregas.count()
+
     return render(
         request,
         'entregas/listar.html',
         {
-            'entregas': entregas
+            'entregas': entregas,
+            'pendentes': pendentes,
         }
     )
 
@@ -93,6 +99,14 @@ def nova_entrega(request):
                     timedelta(days=epi.vida_util_dias)
                 )
                 
+                EntregaEPI.objects.filter(
+                    funcionario=entrega.funcionario,
+                    epi=entrega.epi,
+                    ativo=True
+                ).update(
+                    ativo=False
+                )
+                
 
                 entrega.token_confirmacao = str(
                     uuid.uuid4()
@@ -125,7 +139,49 @@ def nova_entrega(request):
 
     else:
 
-        form = EntregaForm()
+        funcionario_id = request.GET.get(
+            'funcionario'
+        )
+
+        epi_id = request.GET.get(
+            'epi'
+        )
+
+        form = EntregaForm(
+            initial={
+                'funcionario': funcionario_id,
+                'epi': epi_id,
+            }
+        )
+        
+        funcionario_id = request.GET.get(
+        'funcionario'
+    )
+
+    epi_id = request.GET.get(
+        'epi'
+    )
+
+    if funcionario_id and epi_id:
+
+        ultima_entrega = (
+            EntregaEPI.objects
+            .filter(
+                funcionario_id=funcionario_id,
+                epi_id=epi_id
+            )
+            .order_by('-data_entrega')
+            .first()
+        )
+
+        if ultima_entrega:
+
+            form.initial.update({
+                'funcionario': funcionario_id,
+                'epi': epi_id,
+                'quantidade': ultima_entrega.quantidade,
+                'motivo': 'troca'
+            })
 
     return render(
         request,
@@ -334,8 +390,20 @@ def confirmar_recebimento(request, token):
         entrega.data_confirmacao = (
             timezone.now()
         )
-        entrega.metodo_confirmacao = 'qr_code'
+        entrega.metodo_confirmacao = 'biometria'
         entrega.token_confirmacao = None
+        
+        entrega.ip_confirmacao = (
+            request.META.get(
+                'REMOTE_ADDR'
+            )
+        )
+
+        entrega.user_agent_confirmacao = (
+            request.META.get(
+                'HTTP_USER_AGENT'
+            )
+        )
 
         entrega.save()
 

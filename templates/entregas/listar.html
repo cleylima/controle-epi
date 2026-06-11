@@ -6,6 +6,25 @@
 
     <h2>Entregas</h2>
 
+    {% if request.GET.pendentes %}
+
+        <div class="alert alert-warning d-flex justify-content-between align-items-center">
+
+            <span>
+                📋 Exibindo apenas entregas pendentes de confirmação.
+            </span>
+
+            <a
+                href="{% url 'listar_entregas' %}"
+                class="btn btn-sm btn-outline-dark"
+            >
+                Ver Todas
+            </a>
+
+        </div>
+
+        {% endif %}
+
     <a href="{% url 'nova_entrega' %}"
        class="btn btn-primary">
 

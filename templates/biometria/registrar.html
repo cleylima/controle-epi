@@ -7,6 +7,36 @@
 
 <h2>Cadastro Biométrico</h2>
 
+<p>
+    Funcionário:
+    <strong>
+        {{ funcionario.nome }}
+    </strong>
+</p>
+
+<p>
+    Clique no botão abaixo para cadastrar
+    a biometria do colaborador.
+</p>
+
+{% if possui_biometria %}
+
+    <div class="alert alert-success">
+
+        Biometria já cadastrada.
+
+    </div>
+
+{% else %}
+
+    <div class="alert alert-warning">
+
+        Funcionário sem biometria cadastrada.
+
+    </div>
+
+{% endif %}
+
 <button id="registrar">
     Registrar Biometria
 </button>

@@ -42,12 +42,19 @@ def registrar_biometria(
             'registration_challenge'
         ]
     )
+    
+    possui_biometria = (
+        CredencialBiometrica.objects
+        .filter(funcionario=funcionario)
+        .exists()
+    )
 
     return render(
         request,
         'biometria/registrar.html',
         {
-            'funcionario': funcionario
+            'funcionario': funcionario,
+            'possui_biometria': possui_biometria
         }
     )
     

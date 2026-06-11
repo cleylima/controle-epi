@@ -8,6 +8,7 @@ from datetime import date
 
 class EntregaEPI(models.Model):
     
+   
 
     MOTIVOS = [
         ('primeira', 'Primeira Entrega'),
@@ -45,6 +46,14 @@ class EntregaEPI(models.Model):
         blank=True
     )
     
+    ativo = models.BooleanField(
+        default=True
+    )
+    data_proxima_troca = models.DateField(
+        null=True,
+        blank=True
+    )
+    
     assinatura = models.ImageField(
         upload_to='assinaturas/',
         null=True,
@@ -52,7 +61,7 @@ class EntregaEPI(models.Model):
     )
     
     confirmado = models.BooleanField(
-    default=False
+        default=False
     )
 
     data_confirmacao = models.DateTimeField(
@@ -74,6 +83,16 @@ class EntregaEPI(models.Model):
 
     biometria_confirmada = models.BooleanField(
         default=False
+    )
+    
+    ip_confirmacao = models.GenericIPAddressField(
+        null=True,
+        blank=True
+    )
+
+    user_agent_confirmacao = models.TextField(
+        null=True,
+        blank=True
     )
     
     METODOS_CONFIRMACAO = [
