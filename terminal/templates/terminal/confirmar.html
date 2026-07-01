@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Terminal de Assinaturas</h2>
+
+<table class="table table-striped">
+
+    <thead>
+
+        <tr>
+
+            <th>Funcionário</th>
+            <th>EPI</th>
+            <th>Entrega</th>
+            <th></th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        {% for entrega in pendentes %}
+
+        <tr>
+
+            <td>{{ entrega.funcionario.nome }}</td>
+
+            <td>{{ entrega.epi.nome }}</td>
+
+            <td>{{ entrega.data_entrega }}</td>
+
+            <td>
+
+                <a
+                    href="{% url 'confirmar_terminal' entrega.id %}"
+                    class="btn btn-success"
+                >
+
+                    Confirmar
+
+                </a>
+
+            </td>
+
+        </tr>
+
+        {% empty %}
+
+        <tr>
+
+            <td colspan="4">
+
+                Nenhuma entrega pendente.
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}

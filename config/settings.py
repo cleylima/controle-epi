@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'entregas',
     'usuarios',
     'biometria',
+    'terminal',
 ]
 
 MIDDLEWARE = [

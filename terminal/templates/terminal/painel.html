@@ -1,0 +1,98 @@
+{% extends 'terminal/base_terminal.html' %}
+
+
+{% block content %}
+
+    <div class="header-terminal">
+
+        <h1>
+
+            ECOCRISTAL
+
+        </h1>
+
+        <p>
+
+            Terminal de Assinatura Biométrica
+
+        </p>
+
+    </div>
+
+    <div class="row">
+
+        {% for grupo in funcionarios %}
+
+            <div class="col-lg-6 mb-4">
+
+                <div class="card card-entrega">
+
+                    <div class="card-body">
+
+                        <div class="nome-funcionario">
+
+                            👤 {{ grupo.funcionario.nome }}
+
+                        </div>
+
+                        <hr>
+
+                        <div class="epi-item">
+
+                            {% for entrega in grupo.entregas %}
+
+                                <div class="epi-item">
+
+                                🦺 {{ entrega.epi.nome }}
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                        <div class="epi-item">
+
+                            📅 {{ grupo.primeira_entrega.data_entrega|date:"d/m/Y" }}
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            <a href="{% url 'confirmar_terminal' grupo.primeira_entrega.id %}" class="btn btn-primary botao-confirmar">
+
+                                CONFIRMAR
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                    </div>
+
+            </div>
+
+            {% empty %}
+
+            <div class="col-12">
+
+                <div class="alert alert-success text-center">
+
+                    Nenhuma entrega aguardando assinatura.
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+    <div class="status-terminal">
+
+        🟢 Terminal Online
+
+    </div>
+
+{% endblock %}
