@@ -1,6 +1,7 @@
 from django.shortcuts import (
     render,
-    redirect
+    redirect,
+    get_object_or_404
 )
 
 from reportlab.platypus import (
@@ -17,7 +18,6 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 import uuid
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from .forms import EntregaForm
 from .models import EntregaEPI
 from datetime import timedelta
@@ -27,7 +27,6 @@ from django.core.files.base import ContentFile
 
 import qrcode
 from io import BytesIO
-from django.http import HttpResponse
 
 @login_required
 def listar_entregas(request):
@@ -153,35 +152,27 @@ def nova_entrega(request):
                 'epi': epi_id,
             }
         )
-        
-        funcionario_id = request.GET.get(
-        'funcionario'
-    )
 
-    epi_id = request.GET.get(
-        'epi'
-    )
+        if funcionario_id and epi_id:
 
-    if funcionario_id and epi_id:
-
-        ultima_entrega = (
-            EntregaEPI.objects
-            .filter(
-                funcionario_id=funcionario_id,
-                epi_id=epi_id
+            ultima_entrega = (
+                EntregaEPI.objects
+                .filter(
+                    funcionario_id=funcionario_id,
+                    epi_id=epi_id
+                )
+                .order_by('-data_entrega')
+                .first()
             )
-            .order_by('-data_entrega')
-            .first()
-        )
 
-        if ultima_entrega:
+            if ultima_entrega:
 
-            form.initial.update({
-                'funcionario': funcionario_id,
-                'epi': epi_id,
-                'quantidade': ultima_entrega.quantidade,
-                'motivo': 'troca'
-            })
+                form.initial.update({
+                    'funcionario': funcionario_id,
+                    'epi': epi_id,
+                    'quantidade': ultima_entrega.quantidade,
+                    'motivo': 'troca'
+                })
 
     return render(
         request,

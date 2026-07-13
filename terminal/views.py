@@ -1,4 +1,6 @@
 from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from entregas.models import EntregaEPI
 
 
@@ -23,44 +25,33 @@ def painel_terminal(request):
         funcionario = entrega.funcionario
 
         if funcionario.id not in funcionarios:
-
             funcionarios[funcionario.id] = {
-
                 'funcionario': funcionario,
-
                 'entregas': [],
-
                 'primeira_entrega': entrega,
-
+                'id_entrega': entrega.id,
             }
 
         funcionarios[funcionario.id]['entregas'].append(entrega)
 
     return render(
-
         request,
-
         'terminal/painel.html',
-
         {
-
             'funcionarios': funcionarios.values()
-
         }
-
     )
     
-def confirmar_terminal(request, pk):
+@require_POST
+def confirmar_ajax(request):
 
-    entrega = get_object_or_404(
-        EntregaEPI,
-        pk=pk
+    entrega = EntregaEPI.objects.get(
+        pk=request.POST.get("entrega")
     )
 
-    return render(
-        request,
-        'terminal/confirmar.html',
-        {
-            'entrega': entrega
-        }
-    )
+    entrega.confirmado = True
+    entrega.save()
+
+    return JsonResponse({
+        "sucesso": True
+    })

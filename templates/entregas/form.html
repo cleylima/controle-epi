@@ -51,17 +51,65 @@
 
             </button>
 
-
             <hr>
 
             <button
-                type="submit"
-                class="btn btn-success">
-
-                Registrar Entrega
-
+                type="button"
+                id="btnAdicionar"
+                class="btn btn-primary w-100"
+            >
+                ➕ Adicionar EPI
             </button>
 
+            <div class="card shadow-sm">
+
+            <div class="card-header bg-light">
+
+                <h5 class="mb-0">
+                    🦺 Itens desta Entrega
+                </h5>
+
+            </div>
+
+            <div class="card-body">
+
+                <table class="table table-sm" id="tabelaItens">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>EPI</th>
+                            <th>Qtd</th>
+                            <th>Motivo</th>
+                            <th></th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    </tbody>
+
+                </table>
+
+                <div class="d-grid mt-3">
+
+                    <button
+                        class="btn btn-success"
+                        id="btnRegistrarEntrega"
+                    >
+
+                        ✅ Registrar Entrega
+
+                    </button>
+
+                </div>
+
+            </div>
+
+</div>
         </div>
 
     </div>

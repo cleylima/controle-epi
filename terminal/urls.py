@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import painel_terminal, confirmar_ajax
 
 urlpatterns = [
 
@@ -10,9 +11,10 @@ urlpatterns = [
     ),
 
     path(
-        'confirmar/<int:pk>/',
-        views.confirmar_terminal,
-        name='confirmar_terminal'
+        "confirmar/",
+        confirmar_ajax,
+        name="confirmar_ajax"
     ),
+
 
 ]
