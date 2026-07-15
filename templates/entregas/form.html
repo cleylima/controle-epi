@@ -1,186 +1,189 @@
 {% extends 'base.html' %}
 
+{% load static %}
+
 {% block content %}
 
-<h2 class="mb-4">
-    Nova Entrega de EPI
-</h2>
+    <h2 class="mb-4">
+        Nova Entrega de EPI
+    </h2>
 
-<form method="post" id="formEntrega">
+    <form method="post" id="formEntrega">
 
-    {% csrf_token %}
+        {% csrf_token %}
 
-    {% if form.errors %}
-    <div class="alert alert-danger">
-        {{ form.errors }}
-    </div>
-    {% endif %}
-
-    <div class="card card-modern">
-
-        <div class="card-body">
-
-            {{ form.as_p }}
-
-            <hr>
-
-            <h5 class="mb-3">
-                Assinatura do Colaborador
-            </h5>
-
-            <canvas
-                id="assinaturaCanvas"
-                width="600"
-                height="200"
-                style="
-                    border: 2px solid #ccc;
-                    border-radius: 10px;
-                    width: 100%;
-                    max-width: 600px;
-                ">
-            </canvas>
-
-            <br><br>
-
-            <button
-                type="button"
-                id="limparAssinatura"
-                class="btn btn-secondary">
-
-                Limpar Assinatura
-
-            </button>
-
-            <hr>
-
-            <button
-                type="button"
-                id="btnAdicionar"
-                class="btn btn-primary w-100"
-            >
-                ➕ Adicionar EPI
-            </button>
-
-            <div class="card shadow-sm">
-
-            <div class="card-header bg-light">
-
-                <h5 class="mb-0">
-                    🦺 Itens desta Entrega
-                </h5>
-
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            {{ form.errors }}
             </div>
+            {% endif %}
 
-            <div class="card-body">
+            <div class="card card-modern">
 
-                <table class="table table-sm" id="tabelaItens">
+                <div class="card-body">
 
-                    <thead>
+                    {{ form.as_p }}
 
-                        <tr>
+                    <hr>
 
-                            <th>EPI</th>
-                            <th>Qtd</th>
-                            <th>Motivo</th>
-                            <th></th>
+                    <h5 class="mb-3">
+                        Assinatura do Colaborador
+                    </h5>
 
-                        </tr>
+                    <canvas
+                        id="assinaturaCanvas"
+                        width="600"
+                        height="200"
+                        style="
+                            border: 2px solid #ccc;
+                            border-radius: 10px;
+                            width: 100%;
+                            max-width: 600px;
+                        ">
+                    </canvas>
 
-                    </thead>
-
-                    <tbody>
-
-                    </tbody>
-
-                </table>
-
-                <div class="d-grid mt-3">
+                    <br><br>
 
                     <button
-                        class="btn btn-success"
-                        id="btnRegistrarEntrega"
-                    >
+                        type="button"
+                        id="limparAssinatura"
+                        class="btn btn-secondary">
 
-                        ✅ Registrar Entrega
+                        Limpar Assinatura
 
                     </button>
 
-                </div>
+                    <hr>
 
+                    <button
+                        type="button"
+                        id="btnAdicionar"
+                        class="btn btn-primary w-100"
+                    >
+                        ➕ Adicionar EPI
+                    </button>
+
+                    <div class="card shadow-sm">
+
+                    <div class="card-header bg-light">
+
+                        <h5 class="mb-0">
+                            🦺 Itens desta Entrega
+                        </h5>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <table class="table table-sm" id="tabelaItens">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>EPI</th>
+                                    <th>Qtd</th>
+                                    <th>Motivo</th>
+                                    <th></th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                            </tbody>
+
+                        </table>
+
+                        <div class="d-grid mt-3">
+
+                            <button
+                                type="button"
+                                class="btn btn-success"
+                                id="btnRegistrarEntrega"
+                            >
+                                ✅ Registrar Entrega
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>  
             </div>
 
-</div>
         </div>
 
-    </div>
+    </form>
 
-</form>
+    <script src="{% static 'js/entregas.js' %}"></script>
 
-<script>
+    <script>
 
-const canvas = document.getElementById(
-    'assinaturaCanvas'
-);
-
-const ctx = canvas.getContext('2d');
-
-let desenhando = false;
-
-canvas.addEventListener('mousedown', () => {
-    desenhando = true;
-});
-
-canvas.addEventListener('mouseup', () => {
-    desenhando = false;
-
-    document.getElementById(
-        'id_assinatura_base64'
-    ).value = canvas.toDataURL();
-});
-
-canvas.addEventListener('mousemove', desenhar);
-
-function desenhar(event) {
-
-    if (!desenhando) return;
-
-    const rect = canvas.getBoundingClientRect();
-
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-
-    ctx.lineTo(
-        event.clientX - rect.left,
-        event.clientY - rect.top
-    );
-
-    ctx.stroke();
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        event.clientX - rect.left,
-        event.clientY - rect.top
-    );
-}
-
-document
-    .getElementById('limparAssinatura')
-    .addEventListener('click', () => {
-
-        ctx.clearRect(
-            0,
-            0,
-            canvas.width,
-            canvas.height
+        const canvas = document.getElementById(
+            'assinaturaCanvas'
         );
 
-        document.getElementById(
-            'id_assinatura_base64'
-        ).value = '';
-    });
+        const ctx = canvas.getContext('2d');
+
+        let desenhando = false;
+
+        canvas.addEventListener('mousedown', () => {
+            desenhando = true;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            desenhando = false;
+
+            document.getElementById(
+                'id_assinatura_base64'
+            ).value = canvas.toDataURL();
+        });
+
+        canvas.addEventListener('mousemove', desenhar);
+
+        function desenhar(event) {
+
+            if (!desenhando) return;
+
+            const rect = canvas.getBoundingClientRect();
+
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+
+            ctx.lineTo(
+                event.clientX - rect.left,
+                event.clientY - rect.top
+            );
+
+            ctx.stroke();
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                event.clientX - rect.left,
+                event.clientY - rect.top
+            );
+        }
+
+        document
+            .getElementById('limparAssinatura')
+            .addEventListener('click', () => {
+
+                ctx.clearRect(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+                document.getElementById(
+                    'id_assinatura_base64'
+                ).value = '';
+            });
 
 
-</script>
+    </script>
 
 {% endblock %}
