@@ -41,11 +41,6 @@ class EntregaEPI(models.Model):
         
     )
     
-    data_proxima_troca = models.DateField(
-        null=True,
-        blank=True
-    )
-    
     ativo = models.BooleanField(
         default=True
     )

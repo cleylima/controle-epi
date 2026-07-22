@@ -17,13 +17,12 @@ from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 import uuid
+import json
 from django.http import HttpResponse
 from .forms import EntregaForm
 from .models import EntregaEPI
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
-import base64
-from django.core.files.base import ContentFile
 
 import qrcode
 from io import BytesIO
@@ -50,86 +49,76 @@ def listar_entregas(request):
 @login_required
 def nova_entrega(request):
 
+    print(request.POST.get("itens_entrega"))
+    
     if request.method == 'POST':
+        
+        itens = json.loads(
+        request.POST.get("itens_entrega")
+        )
+
+        print(itens)
 
         form = EntregaForm(request.POST)
 
         if form.is_valid():
 
-            print("FORMULÁRIO VÁLIDO")
+            funcionario = form.cleaned_data["funcionario"]
+            data_entrega = form.cleaned_data["data_entrega"]
 
-            entrega = form.save(commit=False)
-            
-            print(request.POST.keys())
-            print(
-                "ASSINATURA POST:",
-                request.POST.get('assinatura_base64')
-            )
-            
-            assinatura_base64 = request.POST.get(
-                'assinatura_base64'
-            )
-            print("ASSINATURA RECEBIDA:",
-                bool(assinatura_base64))
+            token = str(uuid.uuid4())
 
-            epi = entrega.epi
+            from estoque.models import EPI
 
-            if epi.quantidade_estoque <= 0:
+            for item in itens:
 
-                form.add_error(
-                    'epi',
-                    'Este EPI está sem estoque.'
-                )
+                epi = EPI.objects.get(pk=item["epi_id"])
+                quantidade = int(item["quantidade"])
 
-            elif entrega.quantidade > epi.quantidade_estoque:
+                # Validação de estoque
+                if quantidade > epi.quantidade_estoque:
+                    continue
 
-                form.add_error(
-                    'quantidade',
-                    f'Estoque insuficiente. Disponível: {epi.quantidade_estoque}'
-                )
-
-            else:
-
-                epi.quantidade_estoque -= entrega.quantidade
+                # Baixa estoque
+                epi.quantidade_estoque -= quantidade
                 epi.save()
 
-                entrega.data_proxima_troca = (
-                    entrega.data_entrega +
-                    timedelta(days=epi.vida_util_dias)
-                )
-                
+                # Desativa entrega anterior
                 EntregaEPI.objects.filter(
-                    funcionario=entrega.funcionario,
-                    epi=entrega.epi,
+                    funcionario=funcionario,
+                    epi=epi,
                     ativo=True
                 ).update(
                     ativo=False
                 )
-                
 
-                entrega.token_confirmacao = str(
-                    uuid.uuid4()
+                # Nova entrega
+                EntregaEPI.objects.create(
+
+                    funcionario=funcionario,
+
+                    epi=epi,
+
+                    quantidade=quantidade,
+
+                    motivo=item["motivo"],
+
+                    data_entrega=data_entrega,
+
+                    data_proxima_troca=(
+                        data_entrega +
+                        timedelta(days=epi.vida_util_dias)
+                    ),
+
+                    token_confirmacao=token,
+
+                    confirmado=False,
+
+                    ativo=True
+
                 )
-                
-                if assinatura_base64:
 
-                    formato, imgstr = assinatura_base64.split(';base64,')
-
-                    extensao = formato.split('/')[-1]
-
-                    entrega.assinatura.save(
-                        f'assinatura_{entrega.funcionario.id}.{extensao}',
-                        ContentFile(
-                            base64.b64decode(imgstr)
-                        ),
-                        save=False
-                    )
-
-                entrega.save()
-
-                print("ENTREGA SALVA")
-
-                return redirect('listar_entregas')
+            return redirect("listar_entregas")
 
         else:
 
