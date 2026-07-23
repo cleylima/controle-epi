@@ -1,20 +1,21 @@
 from django.urls import path
+
 from . import views
-from .views import painel_terminal, confirmar_ajax
+
+
+app_name = 'terminal'
+
 
 urlpatterns = [
-
     path(
         '',
         views.painel_terminal,
-        name='painel_terminal'
+        name='painel'
     ),
 
     path(
-        "confirmar/",
-        confirmar_ajax,
-        name="confirmar_ajax"
+        'validar-biometria/',
+        views.validar_biometria_ajax,
+        name='validar_biometria'
     ),
-
-
 ]

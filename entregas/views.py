@@ -12,7 +12,7 @@ from reportlab.platypus import (
     TableStyle,
     Image
 )
-
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
@@ -23,6 +23,10 @@ from .forms import EntregaForm
 from .models import EntregaEPI
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from collections import OrderedDict
 
 import qrcode
 from io import BytesIO
@@ -30,34 +34,90 @@ from io import BytesIO
 @login_required
 def listar_entregas(request):
 
-    entregas = EntregaEPI.objects.all()
+    registros = (
+        EntregaEPI.objects
+        .select_related(
+            'funcionario',
+            'epi'
+        )
+        .order_by(
+            '-data_entrega',
+            '-id'
+        )
+    )
 
-    if request.GET.get('pendentes'):
-        entregas = entregas.filter(confirmado=False)
-    
-    pendentes = entregas.count()
+    grupos = OrderedDict()
+
+    for registro in registros:
+
+        # Entregas novas são agrupadas pelo token.
+        # Registros antigos sem token permanecem separados.
+        chave = (
+            str(registro.token_confirmacao)
+            if registro.token_confirmacao
+            else f'registro-{registro.id}'
+        )
+
+        if chave not in grupos:
+
+            grupos[chave] = {
+                'referencia': registro,
+                'funcionario': registro.funcionario,
+                'data_entrega': registro.data_entrega,
+                'token': registro.token_confirmacao,
+                'itens': [],
+                'quantidade_itens': 0,
+                'quantidade_total': 0,
+                'confirmado': True,
+                'data_confirmacao': registro.data_confirmacao,
+                'metodo_confirmacao': (
+                    registro.metodo_confirmacao
+                ),
+            }
+
+        grupos[chave]['itens'].append(registro)
+
+        grupos[chave]['quantidade_itens'] += 1
+
+        grupos[chave]['quantidade_total'] += (
+            registro.quantidade
+        )
+
+        # O grupo só estará confirmado se todos os itens estiverem.
+        if not registro.confirmado:
+            grupos[chave]['confirmado'] = False
+
+        if (
+            not grupos[chave]['data_confirmacao']
+            and registro.data_confirmacao
+        ):
+            grupos[chave]['data_confirmacao'] = (
+                registro.data_confirmacao
+            )
+
+    entregas_agrupadas = list(
+        grupos.values()
+    )
 
     return render(
         request,
         'entregas/listar.html',
         {
-            'entregas': entregas,
-            'pendentes': pendentes,
+            'entregas_agrupadas': entregas_agrupadas
         }
     )
 
 @login_required
 def nova_entrega(request):
 
-    print(request.POST.get("itens_entrega"))
-    
     if request.method == 'POST':
-        
-        itens = json.loads(
-        request.POST.get("itens_entrega")
+
+        itens_json = request.POST.get(
+            "itens_entrega",
+            "[]"
         )
 
-        print(itens)
+        itens = json.loads(itens_json)
 
         form = EntregaForm(request.POST)
 
@@ -77,7 +137,19 @@ def nova_entrega(request):
 
                 # Validação de estoque
                 if quantidade > epi.quantidade_estoque:
-                    continue
+
+                    form.add_error(
+                        None,
+                        f'O EPI "{epi.nome}" não possui estoque suficiente.'
+                    )
+
+                    return render(
+                        request,
+                        'entregas/nova.html',
+                        {
+                            'form': form
+                        }
+                    )
 
                 # Baixa estoque
                 epi.quantidade_estoque -= quantidade
@@ -174,234 +246,583 @@ def nova_entrega(request):
 @login_required
 def gerar_entrega_pdf(request, pk):
 
-    entrega = get_object_or_404(
-        EntregaEPI,
+    entrega_referencia = get_object_or_404(
+        EntregaEPI.objects.select_related(
+            'funcionario',
+            'epi'
+        ),
         pk=pk
     )
+
+    if entrega_referencia.token_confirmacao:
+
+        entregas = list(
+            EntregaEPI.objects
+            .filter(
+                token_confirmacao=(
+                    entrega_referencia.token_confirmacao
+                )
+            )
+            .select_related(
+                'funcionario',
+                'epi'
+            )
+            .order_by('id')
+        )
+
+    else:
+
+        entregas = [entrega_referencia]
+
+    entrega = entregas[0]
+    funcionario = entrega.funcionario
 
     response = HttpResponse(
         content_type='application/pdf'
     )
 
-    response[
-        'Content-Disposition'
-    ] = (
-        f'inline; filename=entrega_{entrega.id}.pdf'
+    nome_arquivo = (
+        f'ficha_epi_{funcionario.id}_'
+        f'{entrega.data_entrega:%Y%m%d}.pdf'
     )
 
-    doc = SimpleDocTemplate(response)
+    response['Content-Disposition'] = (
+        f'inline; filename="{nome_arquivo}"'
+    )
 
-    styles = getSampleStyleSheet()
+    documento = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        rightMargin=15 * mm,
+        leftMargin=15 * mm,
+        topMargin=15 * mm,
+        bottomMargin=15 * mm,
+        title='Comprovante de Entrega de EPI',
+        author='EcoCristal',
+    )
+
+    estilos = getSampleStyleSheet()
+
+    estilo_titulo = ParagraphStyle(
+        name='TituloEPI',
+        parent=estilos['Title'],
+        fontName='Helvetica-Bold',
+        fontSize=15,
+        leading=18,
+        alignment=TA_CENTER,
+        spaceAfter=12,
+    )
+
+    estilo_subtitulo = ParagraphStyle(
+        name='SubtituloEPI',
+        parent=estilos['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=13,
+        alignment=TA_LEFT,
+        spaceBefore=8,
+        spaceAfter=6,
+    )
+
+    estilo_normal = ParagraphStyle(
+        name='NormalEPI',
+        parent=estilos['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=12,
+    )
+
+    estilo_centralizado = ParagraphStyle(
+        name='CentralizadoEPI',
+        parent=estilo_normal,
+        alignment=TA_CENTER,
+    )
 
     elementos = []
 
     elementos.append(
         Paragraph(
             'COMPROVANTE DE ENTREGA DE EPI',
-            styles['Title']
+            estilo_titulo
         )
     )
 
-    elementos.append(
-        Spacer(1, 20)
-    )
-
-    elementos.append(
-        Paragraph(
-            f'<b>Funcionário:</b> {entrega.funcionario.nome}',
-            styles['Normal']
-        )
-    )
-
-    elementos.append(
-        Paragraph(
-            f'<b>Setor:</b> {entrega.funcionario.setor}',
-            styles['Normal']
-        )
-    )
-
-    elementos.append(
-        Paragraph(
-            f'<b>Função:</b> {entrega.funcionario.funcao}',
-            styles['Normal']
-        )
-    )
-
-    elementos.append(
-        Spacer(1, 20)
-    )
-
-    dados = [
-
-        ['Campo', 'Informação'],
-
-        ['EPI', entrega.epi.nome],
-
-        ['Quantidade', str(entrega.quantidade)],
-
-        ['Motivo', entrega.get_motivo_display()],
-
-        ['Data Entrega',
-         entrega.data_entrega.strftime('%d/%m/%Y')],
-
-        ['Próxima Troca',
-         entrega.data_proxima_troca.strftime('%d/%m/%Y')],
+    dados_funcionario = [
+        [
+            Paragraph(
+                '<b>Funcionário:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                funcionario.nome,
+                estilo_normal
+            ),
+        ],
+        [
+            Paragraph(
+                '<b>Setor:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                str(funcionario.setor),
+                estilo_normal
+            ),
+        ],
+        [
+            Paragraph(
+                '<b>Função:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                str(funcionario.funcao),
+                estilo_normal
+            ),
+        ],
+        [
+            Paragraph(
+                '<b>Data da entrega:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                entrega.data_entrega.strftime(
+                    '%d/%m/%Y'
+                ),
+                estilo_normal
+            ),
+        ],
     ]
 
-    tabela = Table(
-        dados,
-        colWidths=[150, 300]
+    tabela_funcionario = Table(
+        dados_funcionario,
+        colWidths=[
+            38 * mm,
+            142 * mm
+        ]
     )
 
-    tabela.setStyle(
+    tabela_funcionario.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0),
-             colors.lightgrey),
-
-            ('GRID', (0, 0), (-1, -1),
-             1, colors.black),
-
-            ('FONTNAME', (0, 0), (-1, 0),
-             'Helvetica-Bold'),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.5,
+                colors.grey
+            ),
+            (
+                'BACKGROUND',
+                (0, 0),
+                (0, -1),
+                colors.whitesmoke
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'LEFTPADDING',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+            (
+                'RIGHTPADDING',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
         ])
     )
 
-    elementos.append(tabela)
-    
+    elementos.append(tabela_funcionario)
+    elementos.append(Spacer(1, 7 * mm))
+
     elementos.append(
-        Spacer(1, 20)   
+        Paragraph(
+            'EPIs ENTREGUES',
+            estilo_subtitulo
+        )
     )
 
-    status = (
+    dados_epis = [
+        [
+            Paragraph(
+                '<b>EPI</b>',
+                estilo_centralizado
+            ),
+            Paragraph(
+                '<b>Qtd.</b>',
+                estilo_centralizado
+            ),
+            Paragraph(
+                '<b>Motivo</b>',
+                estilo_centralizado
+            ),
+            Paragraph(
+                '<b>Próxima troca</b>',
+                estilo_centralizado
+            ),
+        ]
+    ]
+
+    for item in entregas:
+
+        proxima_troca = '-'
+
+        if item.data_proxima_troca:
+            proxima_troca = (
+                item.data_proxima_troca
+                .strftime('%d/%m/%Y')
+            )
+
+        dados_epis.append([
+            Paragraph(
+                item.epi.nome,
+                estilo_normal
+            ),
+            Paragraph(
+                str(item.quantidade),
+                estilo_centralizado
+            ),
+            Paragraph(
+                item.get_motivo_display(),
+                estilo_normal
+            ),
+            Paragraph(
+                proxima_troca,
+                estilo_centralizado
+            ),
+        ])
+
+    tabela_epis = Table(
+        dados_epis,
+        repeatRows=1,
+        colWidths=[
+            72 * mm,
+            18 * mm,
+            55 * mm,
+            35 * mm,
+        ]
+    )
+
+    tabela_epis.setStyle(
+        TableStyle([
+            (
+                'BACKGROUND',
+                (0, 0),
+                (-1, 0),
+                colors.lightgrey
+            ),
+            (
+                'TEXTCOLOR',
+                (0, 0),
+                (-1, 0),
+                colors.black
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.5,
+                colors.grey
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'ALIGN',
+                (1, 1),
+                (1, -1),
+                'CENTER'
+            ),
+            (
+                'ALIGN',
+                (3, 1),
+                (3, -1),
+                'CENTER'
+            ),
+            (
+                'LEFTPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'RIGHTPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+        ])
+    )
+
+    elementos.append(tabela_epis)
+    elementos.append(Spacer(1, 8 * mm))
+
+    confirmado = all(
+        item.confirmado
+        for item in entregas
+    )
+
+    biometria_confirmada = any(
+        getattr(
+            item,
+            'biometria_confirmada',
+            False
+        )
+        for item in entregas
+    )
+
+    data_confirmacao = next(
+        (
+            item.data_confirmacao
+            for item in entregas
+            if item.data_confirmacao
+        ),
+        None
+    )
+
+    metodo_confirmacao = next(
+        (
+            item.metodo_confirmacao
+            for item in entregas
+            if item.metodo_confirmacao
+        ),
+        None
+    )
+
+    if metodo_confirmacao == 'biometria':
+        metodo_exibicao = 'Biometria'
+    elif metodo_confirmacao:
+        metodo_exibicao = (
+            str(metodo_confirmacao)
+            .replace('_', ' ')
+            .title()
+        )
+    else:
+        metodo_exibicao = '-'
+
+    data_confirmacao_formatada = '-'
+
+    if data_confirmacao:
+
+        data_confirmacao_local = timezone.localtime(
+            data_confirmacao
+        )
+
+        data_confirmacao_formatada = (
+            data_confirmacao_local.strftime(
+                '%d/%m/%Y %H:%M'
+            )
+        )
+
+    status_confirmacao = (
         'SIM'
-        if entrega.confirmado
+        if confirmado
+        else 'NÃO'
+    )
+
+    status_biometria = (
+        'SIM'
+        if biometria_confirmada
         else 'NÃO'
     )
 
     elementos.append(
         Paragraph(
-            f'<b>Recebimento Confirmado:</b> {status}',
-            styles['Normal']
+            'CONFIRMAÇÃO DE RECEBIMENTO',
+            estilo_subtitulo
         )
     )
 
-    if entrega.data_confirmacao:
-
-        elementos.append(
+    dados_confirmacao = [
+        [
             Paragraph(
-                (
-                    '<b>Data da Confirmação:</b> '
-                    f'{entrega.data_confirmacao.strftime("%d/%m/%Y %H:%M")}'
-                ),
-                styles['Normal']
-            )
-        )
-
-    if entrega.metodo_confirmacao:
-
-        elementos.append(
+                '<b>Recebimento confirmado:</b>',
+                estilo_normal
+            ),
             Paragraph(
-                (
-                    '<b>Método de Confirmação:</b> '
-                    f'{entrega.get_metodo_confirmacao_display()}'
-                ),
-                styles['Normal']
-            )
-        )
+                status_confirmacao,
+                estilo_normal
+            ),
+        ],
+        [
+            Paragraph(
+                '<b>Confirmação biométrica:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                status_biometria,
+                estilo_normal
+            ),
+        ],
+        [
+            Paragraph(
+                '<b>Data da confirmação:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                data_confirmacao_formatada,
+                estilo_normal
+            ),
+        ],
+        [
+            Paragraph(
+                '<b>Método:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                metodo_exibicao,
+                estilo_normal
+            ),
+        ],
+    ]
+
+    if entrega.ip_confirmacao:
+
+        dados_confirmacao.append([
+            Paragraph(
+                '<b>IP da confirmação:</b>',
+                estilo_normal
+            ),
+            Paragraph(
+                entrega.ip_confirmacao,
+                estilo_normal
+            ),
+        ])
 
     if entrega.token_confirmacao:
 
-        elementos.append(
+        dados_confirmacao.append([
             Paragraph(
-                (
-                    '<b>Token:</b> '
-                    f'{entrega.token_confirmacao}'
-                ),
-                styles['Normal']
-            )
-        )
-
-    if entrega.assinatura:
-
-        elementos.append(
-            Spacer(1, 30)
-        )
-
-        elementos.append(
+                '<b>Token da entrega:</b>',
+                estilo_normal
+            ),
             Paragraph(
-                '<b>Assinatura do Colaborador</b>',
-                styles['Normal']
-            )
+                str(entrega.token_confirmacao),
+                estilo_normal
+            ),
+        ])
+
+    tabela_confirmacao = Table(
+        dados_confirmacao,
+        colWidths=[
+            55 * mm,
+            125 * mm
+        ]
+    )
+
+    tabela_confirmacao.setStyle(
+        TableStyle([
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.5,
+                colors.grey
+            ),
+            (
+                'BACKGROUND',
+                (0, 0),
+                (0, -1),
+                colors.whitesmoke
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'LEFTPADDING',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+            (
+                'RIGHTPADDING',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+        ])
+    )
+
+    elementos.append(tabela_confirmacao)
+    elementos.append(Spacer(1, 9 * mm))
+
+    declaracao = (
+        'Declaro que recebi os equipamentos de proteção '
+        'individual relacionados acima, em boas condições '
+        'de uso, e que fui orientado quanto ao uso correto, '
+        'guarda, conservação e substituição dos equipamentos.'
+    )
+
+    elementos.append(
+        Paragraph(
+            declaracao,
+            estilo_normal
         )
+    )
 
-        assinatura = Image(
-            entrega.assinatura.path,
-            width=180,
-            height=80
+    elementos.append(Spacer(1, 12 * mm))
+
+    rodape = (
+        'Documento gerado eletronicamente pelo Sistema '
+        'de Controle de EPI.'
+    )
+
+    elementos.append(
+        Paragraph(
+            rodape,
+            estilo_centralizado
         )
+    )
 
-        assinatura.hAlign = 'LEFT'
-
-        elementos.append(
-            assinatura
-        )
-
-    doc.build(elementos)
+    documento.build(elementos)
 
     return response
-
-def confirmar_recebimento(request, token):
-
-    entrega = get_object_or_404(
-        EntregaEPI,
-        token_confirmacao=token
-    )
-    
-    if entrega.token_confirmacao is None:
-        return render(
-            request,
-            'entregas/token_expirado.html'
-        )
-
-    if request.method == 'POST':
-
-        entrega.confirmado = True
-
-        entrega.data_confirmacao = (
-            timezone.now()
-        )
-        entrega.metodo_confirmacao = 'biometria'
-        entrega.token_confirmacao = None
-        
-        entrega.ip_confirmacao = (
-            request.META.get(
-                'REMOTE_ADDR'
-            )
-        )
-
-        entrega.user_agent_confirmacao = (
-            request.META.get(
-                'HTTP_USER_AGENT'
-            )
-        )
-
-        entrega.save()
-
-        return render(
-            request,
-            'entregas/confirmado.html',
-            {
-                'entrega': entrega
-            }
-        )
-
-    return render(
-        request,
-        'entregas/confirmar.html',
-        {
-            'entrega': entrega
-        }
-    )
     
 @login_required
 def qr_confirmacao(request, pk):

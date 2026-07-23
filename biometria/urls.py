@@ -1,35 +1,27 @@
 from django.urls import path
 
-from . import views
-
+from .views import (
+    excluir_biometria,
+    registrar_biometria,
+    salvar_biometria,
+)
 
 urlpatterns = [
-
     path(
         'registrar/<int:funcionario_id>/',
-        views.registrar_biometria,
+        registrar_biometria,
         name='registrar_biometria'
     ),
 
     path(
-        'autenticar/<int:entrega_id>/',
-        views.autenticar_biometria,
-        name='autenticar_biometria'
-    ),
-    path(
-        'opcoes/<int:funcionario_id>/',
-        views.opcoes_registro,
-        name='opcoes_registro'
-    ),
-    path(
-        'salvar/',
-        views.salvar_biometria,
+        'salvar/<int:funcionario_id>/',
+        salvar_biometria,
         name='salvar_biometria'
     ),
-    
+
     path(
-        'autenticar/opcoes/<int:funcionario_id>/',
-        views.opcoes_autenticacao,
-        name='opcoes_autenticacao'
+        'excluir/<int:funcionario_id>/',
+        excluir_biometria,
+        name='excluir_biometria'
     ),
 ]

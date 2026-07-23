@@ -34,80 +34,129 @@
 
 </div>
 
-<div class="card card-modern">
+<div class="entregas-card">
 
-    <div class="card-body">
+    <div class="table-responsive">
 
-        <table class="table table-hover">
+        <table class="entregas-table">
 
             <thead>
-
                 <tr>
                     <th>Funcionário</th>
-                    <th>EPI</th>
+                    <th>EPIs entregues</th>
                     <th>Quantidade</th>
-                    <th>Motivo</th>
-                    <th>Data Entrega</th>
-                    <th>Próxima Troca</th>
+                    <th>Data da entrega</th>
+                    <th>Status</th>
                     <th>Ações</th>
                 </tr>
-
             </thead>
 
             <tbody>
 
-                {% for entrega in entregas %}
+                {% for grupo in entregas_agrupadas %}
 
                     <tr>
 
-                        <td>{{ entrega.funcionario }}</td>
+                        <td>
+                            <div class="funcionario-nome">
+                                {{ grupo.funcionario.nome }}
+                            </div>
 
-                        <td>{{ entrega.epi }}</td>
-
-                        <td>{{ entrega.quantidade }}</td>
-
-                        <td>{{ entrega.get_motivo_display }}</td>
-
-                        <td>{{ entrega.data_entrega|date:"d/m/Y" }}</td>
+                            <div class="funcionario-detalhes">
+                                {{ grupo.funcionario.setor }}
+                                —
+                                {{ grupo.funcionario.funcao }}
+                            </div>
+                        </td>
 
                         <td>
-                            {{ entrega.data_proxima_troca|date:"d/m/Y" }}
+
+                            <div class="lista-epis">
+
+                                {% for item in grupo.itens %}
+
+                                    <div class="epi-item">
+
+                                        <span class="epi-quantidade">
+                                            {{ item.quantidade }}x
+                                        </span>
+
+                                        <span class="epi-nome">
+                                            {{ item.epi.nome }}
+                                        </span>
+
+                                        <span class="epi-motivo">
+                                            — {{ item.get_motivo_display }}
+                                        </span>
+
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                            <div class="epi-total-tipos">
+                                {{ grupo.quantidade_itens }}
+                                tipo{{ grupo.quantidade_itens|pluralize }}
+                                de EPI
+                            </div>
+
+                        </td>
+
+                        <td>
+                            <span class="quantidade-total">
+                                {{ grupo.quantidade_total }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {{ grupo.data_entrega|date:"d/m/Y" }}
+                        </td>
+
+                        <td>
+
+                            {% if grupo.confirmado %}
+
+                                <span class="status status-confirmado">
+                                    Confirmado
+                                </span>
+
+                                {% if grupo.data_confirmacao %}
+                                    <div class="data-confirmacao">
+                                        {{ grupo.data_confirmacao|date:"d/m/Y H:i" }}
+                                    </div>
+                                {% endif %}
+
+                            {% else %}
+
+                                <span class="status status-pendente">
+                                    Pendente
+                                </span>
+
+                            {% endif %}
+
                         </td>
 
                         <td>
 
                             <a
-                                href="{% url 'gerar_entrega_pdf' entrega.id %}"
+                                href="{% url 'gerar_entrega_pdf' grupo.referencia.id %}"
+                                class="btn-pdf"
                                 target="_blank"
-                                class="btn btn-info btn-sm">
-
+                            >
                                 PDF
-
-                            </a>
-
-                            <a
-                                href="{% url 'qr_confirmacao' entrega.id %}"
-                                target="_blank"
-                                class="btn btn-secondary btn-sm">
-
-                                QR
-
                             </a>
 
                         </td>
 
                     </tr>
 
-                    {% empty %}
+                {% empty %}
 
                     <tr>
-
-                        <td colspan="7" class="text-center">
-
-                            Nenhuma entrega registrada.
-
+                        <td colspan="6" class="sem-registros">
+                            Nenhuma entrega cadastrada.
                         </td>
-
                     </tr>
 
                 {% endfor %}
@@ -119,5 +168,154 @@
     </div>
 
 </div>
+
+<style>
+    .entregas-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .entregas-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .entregas-table thead th {
+        padding: 12px 10px;
+        text-align: left;
+        font-size: 14px;
+        font-weight: 700;
+        color: #111827;
+        border-bottom: 1px solid #dfe3e8;
+        white-space: nowrap;
+    }
+
+    .entregas-table tbody td {
+        padding: 14px 10px;
+        vertical-align: top;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 14px;
+        color: #1f2937;
+    }
+
+    .entregas-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .funcionario-nome {
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    .funcionario-detalhes {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .lista-epis {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .epi-item {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .epi-quantidade {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        padding: 2px 6px;
+        border: 1px solid #d1d5db;
+        border-radius: 5px;
+        background: #f9fafb;
+        font-size: 11px;
+        font-weight: 700;
+        color: #374151;
+    }
+
+    .epi-nome {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    .epi-motivo {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .epi-total-tipos {
+        margin-top: 7px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .quantidade-total {
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .status {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .status-confirmado {
+        background: #198754;
+        color: #ffffff;
+    }
+
+    .status-pendente {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .data-confirmacao {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .btn-pdf {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 5px;
+        background: #0dcaf0;
+        color: #111827;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+    .btn-pdf:hover {
+        background: #0bb5d8;
+        color: #111827;
+    }
+
+    .sem-registros {
+        padding: 30px !important;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    @media (max-width: 900px) {
+        .entregas-table {
+            min-width: 850px;
+        }
+    }
+</style>
 
 {% endblock %}

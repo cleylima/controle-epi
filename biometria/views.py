@@ -1,176 +1,17 @@
-from django.http import HttpResponse
-import json, base64
-from dataclasses import asdict
-from webauthn import generate_registration_options
+import json
+
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
-from .models import CredencialBiometrica
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
 from funcionarios.models import Funcionario
 
-from webauthn import (
-    generate_registration_options, generate_authentication_options
-)
+from .models import CredencialBiometrica
 
 
-def registrar_biometria(
-    request,
-    funcionario_id
-):
-
-    funcionario = get_object_or_404(
-        Funcionario,
-        pk=funcionario_id
-    )
-
-    options = generate_registration_options(
-        rp_id='10.0.30.93',
-        rp_name='Controle EPI',
-        user_id=str(funcionario.id).encode(),
-        user_name=funcionario.nome,
-    )
-
-    print("OPÇÕES DE AUTENTICAÇÃO GERADAS")
-
-    request.session[
-        'registration_challenge'
-    ] = base64.b64encode(
-        options.challenge
-    ).decode('utf-8')
-
-    print(
-        request.session[
-            'registration_challenge'
-        ]
-    )
-    
-    possui_biometria = (
-        CredencialBiometrica.objects
-        .filter(funcionario=funcionario)
-        .exists()
-    )
-
-    return render(
-        request,
-        'biometria/registrar.html',
-        {
-            'funcionario': funcionario,
-            'possui_biometria': possui_biometria
-        }
-    )
-    
-def opcoes_registro(
-    request,
-    funcionario_id
-):
-
-    funcionario = get_object_or_404(
-        Funcionario,
-        pk=funcionario_id
-    )
-
-    options = generate_registration_options(
-        rp_id='localhost',
-        rp_name='Controle EPI',
-        user_id=str(funcionario.id).encode(),
-        user_name=funcionario.nome,
-    )
-
-    request.session[
-        'registration_challenge'
-    ] = base64.b64encode(
-        options.challenge
-    ).decode()
-
-    return JsonResponse({
-        'challenge':
-            base64.b64encode(
-                options.challenge
-            ).decode(),
-
-        'rp': {
-            'name': 'Controle EPI',
-            'id': 'localhost'
-        },
-
-        'user': {
-            'id':
-                base64.b64encode(
-                    str(funcionario.id).encode()
-                ).decode(),
-
-            'name': funcionario.nome,
-
-            'displayName':
-                funcionario.nome,
-        },
-
-        'pubKeyCredParams': [
-            {
-                'type': 'public-key',
-                'alg': -7
-            }
-        ],
-
-        'timeout': 60000,
-
-        'attestation': 'none'
-    })
-
-def autenticar_biometria(
-    request,
-    entrega_id
-):
-
-    return HttpResponse(
-        f'Autenticar biometria da entrega {entrega_id}'
-    )
-    
-from django.views.decorators.csrf import csrf_exempt
-
-@csrf_exempt
-def salvar_biometria(request):
-    print("CHEGOU NA VIEW SALVAR")
-
-    if request.method == 'POST':
-
-        dados = json.loads(
-            request.body
-        )
-        print(dados)
-
-        funcionario_id = dados.get(
-            'funcionario_id'
-        )
-
-        credential_id = dados.get(
-            'credential_id'
-        )
-
-        funcionario = get_object_or_404(
-            Funcionario,
-            pk=funcionario_id
-        )
-
-        CredencialBiometrica.objects.get_or_create(
-            funcionario=funcionario,
-            credential_id=credential_id,
-            defaults={
-                'public_key': 'temporario'
-            }
-        )
-
-        return JsonResponse({
-            'status': 'ok'
-        })
-
-    return JsonResponse({
-        'status': 'erro'
-    })
-    
-def opcoes_autenticacao(
-    request,
-    funcionario_id
-):
+@login_required
+def registrar_biometria(request, funcionario_id):
 
     funcionario = get_object_or_404(
         Funcionario,
@@ -179,32 +20,95 @@ def opcoes_autenticacao(
 
     credencial = (
         CredencialBiometrica.objects
-        .filter(funcionario=funcionario)
+        .filter(
+            funcionario=funcionario,
+            ativo=True
+        )
         .first()
     )
 
-    if not credencial:
+    return render(
+        request,
+        'biometria/registrar.html',
+        {
+            'funcionario': funcionario,
+            'credencial': credencial,
+            'possui_biometria': credencial is not None,
+        }
+    )
 
+
+@login_required
+@require_POST
+def salvar_biometria(request, funcionario_id):
+
+    funcionario = get_object_or_404(
+        Funcionario,
+        pk=funcionario_id
+    )
+
+    try:
+        dados = json.loads(
+            request.body.decode('utf-8')
+        )
+    except json.JSONDecodeError:
         return JsonResponse(
             {
-                'erro': 'Funcionário sem biometria cadastrada.'
+                'sucesso': False,
+                'erro': 'Dados inválidos.'
             },
             status=400
         )
 
-    options = generate_authentication_options(
-        rp_id='10.0.30.93'
+    template_base64 = dados.get(
+        'template',
+        ''
+    ).strip()
+
+    if not template_base64:
+        return JsonResponse(
+            {
+                'sucesso': False,
+                'erro': 'Template biométrico não recebido.'
+            },
+            status=400
+        )
+
+    credencial, criada = (
+        CredencialBiometrica.objects.update_or_create(
+            funcionario=funcionario,
+            defaults={
+                'template_base64': template_base64,
+                'ativo': True,
+            }
+        )
     )
 
-    request.session[
-        'authentication_challenge'
-    ] = base64.b64encode(
-        options.challenge
-    ).decode()
-
     return JsonResponse({
-        'challenge':
-            base64.b64encode(
-                options.challenge
-            ).decode()
+        'sucesso': True,
+        'criada': criada,
+        'mensagem': (
+            'Biometria cadastrada com sucesso.'
+            if criada
+            else 'Biometria atualizada com sucesso.'
+        )
     })
+
+
+@login_required
+@require_POST
+def excluir_biometria(request, funcionario_id):
+
+    funcionario = get_object_or_404(
+        Funcionario,
+        pk=funcionario_id
+    )
+
+    CredencialBiometrica.objects.filter(
+        funcionario=funcionario
+    ).delete()
+
+    return redirect(
+        'registrar_biometria',
+        funcionario_id=funcionario.id
+    )

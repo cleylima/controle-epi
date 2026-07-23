@@ -5,23 +5,20 @@ from funcionarios.models import Funcionario
 
 class CredencialBiometrica(models.Model):
 
-    funcionario = models.ForeignKey(
+    funcionario = models.OneToOneField(
         Funcionario,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='credencial_biometrica'
     )
 
-    credential_id = models.TextField(
-        unique=True
-    )
-
-    public_key = models.TextField()
-
-    sign_count = models.IntegerField(
-        default=0
-    )
+    template_base64 = models.TextField()
 
     criado_em = models.DateTimeField(
         auto_now_add=True
+    )
+
+    atualizado_em = models.DateTimeField(
+        auto_now=True
     )
 
     ativo = models.BooleanField(
@@ -29,7 +26,4 @@ class CredencialBiometrica(models.Model):
     )
 
     def __str__(self):
-
-        return (
-            f'{self.funcionario.nome}'
-        )
+        return f'Biometria de {self.funcionario.nome}'

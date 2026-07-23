@@ -1,123 +1,487 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Cadastro Biométrico</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-<h2>Cadastro Biométrico</h2>
+{% block content %}
 
-<p>
-    Funcionário:
-    <strong>
-        {{ funcionario.nome }}
-    </strong>
-</p>
+<div class="biometria-header">
+    <div>
+        <h2>Cadastro Biométrico</h2>
+        <p>
+            Cadastre a impressão digital do funcionário
+            utilizando o leitor DigitalPersona.
+        </p>
+    </div>
 
-<p>
-    Clique no botão abaixo para cadastrar
-    a biometria do colaborador.
-</p>
+    <a
+        href="{% url 'listar_funcionarios' %}"
+        class="btn-voltar"
+    >
+        Voltar
+    </a>
+</div>
 
-{% if possui_biometria %}
+<div class="biometria-card">
 
-    <div class="alert alert-success">
+    <div class="funcionario-box">
 
-        Biometria já cadastrada.
+        <div class="funcionario-avatar">
+            {{ funcionario.nome|first|upper }}
+        </div>
+
+        <div>
+            <h3>{{ funcionario.nome }}</h3>
+
+            <p>
+                <strong>Setor:</strong>
+                {{ funcionario.setor }}
+            </p>
+
+            <p>
+                <strong>Função:</strong>
+                {{ funcionario.funcao }}
+            </p>
+        </div>
 
     </div>
 
-{% else %}
+    <div class="biometria-status">
 
-    <div class="alert alert-warning">
+        {% if possui_biometria %}
 
-        Funcionário sem biometria cadastrada.
+            <div class="status-box status-cadastrada">
+                <span class="status-icone">✓</span>
+
+                <div>
+                    <strong>Biometria cadastrada</strong>
+
+                    <p>
+                        Última atualização:
+                        {{ credencial.atualizado_em|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+            </div>
+
+        {% else %}
+
+            <div class="status-box status-nao-cadastrada">
+                <span class="status-icone">!</span>
+
+                <div>
+                    <strong>Biometria não cadastrada</strong>
+
+                    <p>
+                        O funcionário ainda não possui uma
+                        impressão digital registrada.
+                    </p>
+                </div>
+            </div>
+
+        {% endif %}
 
     </div>
 
-{% endif %}
+    <div
+        id="areaLeitura"
+        class="area-leitura"
+    >
+        <div class="digital-icone">
+            ☝
+        </div>
 
-<button id="registrar">
-    Registrar Biometria
-</button>
+        <h3 id="tituloLeitura">
+            Leitor aguardando
+        </h3>
+
+        <p id="statusBiometria">
+            Clique no botão abaixo para iniciar o cadastro.
+        </p>
+
+        <div
+            id="progressoContainer"
+            class="progresso-container"
+            style="display: none;"
+        >
+            <div class="progresso-barra">
+                <div
+                    id="progresso"
+                    class="progresso"
+                    style="width: 0%;"
+                ></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="acoes-biometria">
+
+        <button
+            type="button"
+            id="btnCadastrar"
+            class="btn-cadastrar"
+        >
+            {% if possui_biometria %}
+                Recadastrar biometria
+            {% else %}
+                Cadastrar biometria
+            {% endif %}
+        </button>
+
+        {% if possui_biometria %}
+
+            <form
+                method="post"
+                action="{% url 'excluir_biometria' funcionario.id %}"
+                onsubmit="
+                    return confirm(
+                        'Deseja realmente excluir esta biometria?'
+                    );
+                "
+            >
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="btn-excluir"
+                >
+                    Excluir biometria
+                </button>
+            </form>
+
+        {% endif %}
+
+    </div>
+
+</div>
 
 <script>
+    const botaoCadastrar =
+        document.getElementById('btnCadastrar');
 
-document
-.getElementById('registrar')
-.addEventListener('click', async () => {
+    const tituloLeitura =
+        document.getElementById('tituloLeitura');
 
-    const response =
-        await fetch(
-            '/biometria/opcoes/{{ funcionario.id }}/'
-        );
+    const statusBiometria =
+        document.getElementById('statusBiometria');
 
-    const options =
-        await response.json();
+    const progressoContainer =
+        document.getElementById('progressoContainer');
 
-    options.challenge =
-        Uint8Array.from(
-            atob(options.challenge),
-            c => c.charCodeAt(0)
-        );
+    const progresso =
+        document.getElementById('progresso');
 
-    options.user.id =
-        Uint8Array.from(
-            atob(options.user.id),
-            c => c.charCodeAt(0)
-        );
 
-    try {
+    function obterCookie(nome) {
 
-        const credential =
-            await navigator.credentials.create({
-                publicKey: options
-            });
+        const cookies =
+            document.cookie
+                .split(';')
+                .map(cookie => cookie.trim());
 
-        console.log(
-            credential
-        );
+        for (const cookie of cookies) {
 
-        await fetch(
-            '/biometria/salvar/',
+            if (cookie.startsWith(nome + '=')) {
+
+                return decodeURIComponent(
+                    cookie.substring(
+                        nome.length + 1
+                    )
+                );
+            }
+        }
+
+        return null;
+    }
+
+
+    async function salvarTemplate(template) {
+
+        const resposta = await fetch(
+            "{% url 'salvar_biometria' funcionario.id %}",
             {
                 method: 'POST',
 
                 headers: {
                     'Content-Type':
-                        'application/json'
+                        'application/json',
+
+                    'X-CSRFToken':
+                        obterCookie('csrftoken')
                 },
 
                 body: JSON.stringify({
-
-                    funcionario_id:
-                        {{ funcionario.id }},
-
-                    credential_id:
-                        credential.id
-
+                    template: template
                 })
             }
         );
 
-        alert(
-            'Biometria cadastrada com sucesso!'
-        );
+        const dados = await resposta.json();
 
+        if (!resposta.ok) {
+            throw new Error(
+                dados.erro ||
+                'Não foi possível salvar a biometria.'
+            );
+        }
+
+        return dados;
     }
 
-    catch(error) {
 
-        console.error(error);
+    botaoCadastrar.addEventListener(
+        'click',
+        async () => {
 
-        alert(
-            'Falha ao capturar biometria.'
-        );
-    }
+            botaoCadastrar.disabled = true;
 
-});
+            progressoContainer.style.display =
+                'block';
 
+            progresso.style.width = '15%';
+
+            tituloLeitura.textContent =
+                'Cadastro em andamento';
+
+            statusBiometria.textContent =
+                'Encoste o mesmo dedo no leitor quando solicitado.';
+
+            try {
+
+                const resposta = await fetch(
+                    'http://127.0.0.1:5055/cadastrar'
+                );
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok || !dados.sucesso) {
+
+                    throw new Error(
+                        dados.erro ||
+                        'Falha no cadastro biométrico.'
+                    );
+                }
+
+                progresso.style.width = '80%';
+
+                statusBiometria.textContent =
+                    'Salvando a biometria...';
+
+                const resultado =
+                    await salvarTemplate(
+                        dados.template
+                    );
+
+                progresso.style.width = '100%';
+
+                tituloLeitura.textContent =
+                    'Biometria cadastrada';
+
+                statusBiometria.textContent =
+                    resultado.mensagem;
+
+                setTimeout(
+                    () => location.reload(),
+                    1200
+                );
+
+            } catch (erro) {
+
+                console.error(erro);
+
+                tituloLeitura.textContent =
+                    'Não foi possível cadastrar';
+
+                statusBiometria.textContent =
+                    erro.message;
+
+                progresso.style.width = '0%';
+
+                botaoCadastrar.disabled = false;
+            }
+        }
+    );
 </script>
 
-</body>
-</html>
+<style>
+    .biometria-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+    }
+
+    .biometria-header h2 {
+        margin: 0;
+        font-size: 27px;
+        color: #111827;
+    }
+
+    .biometria-header p {
+        margin: 6px 0 0;
+        color: #6b7280;
+    }
+
+    .btn-voltar {
+        padding: 9px 16px;
+        border-radius: 6px;
+        background: #6b7280;
+        color: white;
+        text-decoration: none;
+    }
+
+    .biometria-card {
+        max-width: 850px;
+        padding: 25px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .funcionario-box {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .funcionario-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        background: #2563eb;
+        color: white;
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    .funcionario-box h3 {
+        margin: 0 0 7px;
+    }
+
+    .funcionario-box p {
+        margin: 3px 0;
+        color: #4b5563;
+    }
+
+    .biometria-status {
+        margin: 22px 0;
+    }
+
+    .status-box {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 15px;
+        border-radius: 9px;
+    }
+
+    .status-box p {
+        margin: 3px 0 0;
+        font-size: 13px;
+    }
+
+    .status-cadastrada {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+
+    .status-nao-cadastrada {
+        background: #fff7ed;
+        color: #9a3412;
+        border: 1px solid #fed7aa;
+    }
+
+    .status-icone {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        font-size: 20px;
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    .area-leitura {
+        padding: 30px;
+        text-align: center;
+        border: 2px dashed #d1d5db;
+        border-radius: 12px;
+        background: #f9fafb;
+    }
+
+    .digital-icone {
+        font-size: 50px;
+        margin-bottom: 10px;
+    }
+
+    .area-leitura h3 {
+        margin: 0 0 6px;
+    }
+
+    .area-leitura p {
+        margin: 0;
+        color: #6b7280;
+    }
+
+    .progresso-container {
+        max-width: 430px;
+        margin: 20px auto 0;
+    }
+
+    .progresso-barra {
+        height: 11px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #e5e7eb;
+    }
+
+    .progresso {
+        height: 100%;
+        border-radius: 10px;
+        background: #2563eb;
+        transition: width 0.4s;
+    }
+
+    .acoes-biometria {
+        display: flex;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    .btn-cadastrar,
+    .btn-excluir {
+        border: 0;
+        border-radius: 7px;
+        padding: 10px 17px;
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .btn-cadastrar {
+        background: #2563eb;
+    }
+
+    .btn-cadastrar:hover {
+        background: #1d4ed8;
+    }
+
+    .btn-cadastrar:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+
+    .btn-excluir {
+        background: #dc2626;
+    }
+
+    .btn-excluir:hover {
+        background: #b91c1c;
+    }
+</style>
+
+{% endblock %}
