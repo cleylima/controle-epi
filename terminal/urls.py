@@ -14,8 +14,26 @@ urlpatterns = [
     ),
 
     path(
-        'validar-biometria/',
-        views.validar_biometria_ajax,
-        name='validar_biometria'
+        'biometria/iniciar/',
+        views.iniciar_validacao_biometrica,
+        name='iniciar_biometria'
+    ),
+
+    path(
+        'biometria/<uuid:sessao_id>/dados/',
+        views.dados_validacao_biometrica,
+        name='dados_biometria'
+    ),
+
+    path(
+        'biometria/<uuid:sessao_id>/concluir/',
+        views.concluir_validacao_biometrica,
+        name='concluir_biometria'
+    ),
+
+    path(
+        'biometria/<uuid:sessao_id>/status/',
+        views.status_validacao_biometrica,
+        name='status_biometria'
     ),
 ]

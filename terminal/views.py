@@ -1,19 +1,21 @@
 import json
-import socket
-import urllib.error
-import urllib.request
+import secrets
 
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 
-from biometria.models import CredencialBiometrica
+from biometria.models import (
+    CredencialBiometrica,
+    SessaoValidacaoBiometrica
+)
 from entregas.models import EntregaEPI
-
-
-BIOMETRIA_SERVICE_URL = 'http://127.0.0.1:5055/validar'
 
 
 def painel_terminal(request):
@@ -58,7 +60,7 @@ def painel_terminal(request):
 
 
 @require_POST
-def validar_biometria_ajax(request):
+def iniciar_validacao_biometrica(request):
 
     entrega_id = request.POST.get('entrega')
 
@@ -71,7 +73,7 @@ def validar_biometria_ajax(request):
             status=400
         )
 
-    entrega_referencia = get_object_or_404(
+    entrega = get_object_or_404(
         EntregaEPI.objects.select_related(
             'funcionario'
         ),
@@ -79,14 +81,18 @@ def validar_biometria_ajax(request):
         confirmado=False
     )
 
-    funcionario = entrega_referencia.funcionario
+    funcionario = entrega.funcionario
 
-    try:
-        credencial = CredencialBiometrica.objects.get(
+    existe_biometria = (
+        CredencialBiometrica.objects
+        .filter(
             funcionario=funcionario,
             ativo=True
         )
-    except CredencialBiometrica.DoesNotExist:
+        .exists()
+    )
+
+    if not existe_biometria:
         return JsonResponse(
             {
                 'sucesso': False,
@@ -98,182 +104,338 @@ def validar_biometria_ajax(request):
             status=400
         )
 
-    payload = json.dumps(
-        {
-            'template': credencial.template_base64
-        }
-    ).encode('utf-8')
-
-    requisicao = urllib.request.Request(
-        BIOMETRIA_SERVICE_URL,
-        data=payload,
-        headers={
-            'Content-Type': 'application/json'
-        },
-        method='POST'
+    SessaoValidacaoBiometrica.objects.filter(
+        entrega=entrega,
+        status=SessaoValidacaoBiometrica.Status.PENDENTE
+    ).update(
+        status=SessaoValidacaoBiometrica.Status.EXPIRADA
     )
 
-    try:
-        with urllib.request.urlopen(
-            requisicao,
-            timeout=40
-        ) as resposta:
-
-            corpo = resposta.read().decode('utf-8')
-            resultado_biometria = json.loads(corpo)
-
-    except urllib.error.HTTPError as erro:
-
-        try:
-            corpo_erro = erro.read().decode('utf-8')
-            dados_erro = json.loads(corpo_erro)
-            mensagem = dados_erro.get(
-                'erro',
-                'Erro no serviço biométrico.'
-            )
-        except Exception:
-            mensagem = 'Erro no serviço biométrico.'
-
-        return JsonResponse(
-            {
-                'sucesso': False,
-                'erro': mensagem
-            },
-            status=erro.code
+    sessao = SessaoValidacaoBiometrica.objects.create(
+        entrega=entrega,
+        funcionario=funcionario,
+        expira_em=timezone.now() + timedelta(minutes=2),
+        ip_solicitante=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get(
+            'HTTP_USER_AGENT',
+            ''
         )
+    )
 
-    except (
-        urllib.error.URLError,
-        ConnectionRefusedError
+    return JsonResponse(
+        {
+            'sucesso': True,
+            'sessao': str(sessao.id),
+            'funcionario': funcionario.nome
+        }
+    )
+
+@csrf_exempt
+@require_GET
+def dados_validacao_biometrica(request, sessao_id):
+
+    chave_recebida = request.headers.get(
+        'X-Biometria-Key',
+        ''
+    )
+
+    chave_esperada = settings.BIOMETRIA_SERVICE_KEY
+
+    if (
+        not chave_esperada
+        or not secrets.compare_digest(
+            chave_recebida,
+            chave_esperada
+        )
     ):
         return JsonResponse(
             {
                 'sucesso': False,
+                'erro': 'Serviço biométrico não autorizado.'
+            },
+            status=403
+        )
+
+    sessao = get_object_or_404(
+        SessaoValidacaoBiometrica.objects.select_related(
+            'funcionario'
+        ),
+        pk=sessao_id
+    )
+
+    if sessao.status != (
+        SessaoValidacaoBiometrica.Status.PENDENTE
+    ):
+        return JsonResponse(
+            {
+                'sucesso': False,
+                'erro': 'Sessão biométrica indisponível.'
+            },
+            status=409
+        )
+
+    if sessao.expirou():
+        sessao.status = (
+            SessaoValidacaoBiometrica.Status.EXPIRADA
+        )
+        sessao.save(
+            update_fields=['status']
+        )
+
+        return JsonResponse(
+            {
+                'sucesso': False,
+                'erro': 'Sessão biométrica expirada.'
+            },
+            status=410
+        )
+
+    credencial = get_object_or_404(
+        CredencialBiometrica,
+        funcionario=sessao.funcionario,
+        ativo=True
+    )
+
+    return JsonResponse(
+        {
+            'sucesso': True,
+            'sessao': str(sessao.id),
+            'template': credencial.template_base64,
+            'funcionario': sessao.funcionario.nome
+        }
+    )
+
+@csrf_exempt
+@require_POST
+def concluir_validacao_biometrica(request, sessao_id):
+
+    chave_recebida = request.headers.get(
+        'X-Biometria-Key',
+        ''
+    )
+
+    chave_esperada = settings.BIOMETRIA_SERVICE_KEY
+
+    if (
+        not chave_esperada
+        or not secrets.compare_digest(
+            chave_recebida,
+            chave_esperada
+        )
+    ):
+        return JsonResponse(
+            {
+                'sucesso': False,
+                'erro': 'Serviço biométrico não autorizado.'
+            },
+            status=403
+        )
+
+    try:
+        dados = json.loads(
+            request.body.decode('utf-8')
+        )
+    except (
+        json.JSONDecodeError,
+        UnicodeDecodeError
+    ):
+        return JsonResponse(
+            {
+                'sucesso': False,
+                'erro': 'JSON inválido.'
+            },
+            status=400
+        )
+
+    corresponde = dados.get('corresponde')
+
+    if not isinstance(corresponde, bool):
+        return JsonResponse(
+            {
+                'sucesso': False,
                 'erro': (
-                    'O serviço biométrico está offline. '
-                    'Abra o BiometriaService e tente novamente.'
-                )
-            },
-            status=503
-        )
-
-    except socket.timeout:
-        return JsonResponse(
-            {
-                'sucesso': False,
-                'erro': 'O tempo da leitura biométrica expirou.'
-            },
-            status=408
-        )
-
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {
-                'sucesso': False,
-                'erro': (
-                    'O serviço biométrico retornou '
-                    'uma resposta inválida.'
-                )
-            },
-            status=502
-        )
-
-    except Exception as erro:
-        return JsonResponse(
-            {
-                'sucesso': False,
-                'erro': (
-                    'Não foi possível realizar a validação: '
-                    f'{str(erro)}'
-                )
-            },
-            status=500
-        )
-
-    if not resultado_biometria.get('sucesso'):
-        return JsonResponse(
-            {
-                'sucesso': False,
-                'erro': resultado_biometria.get(
-                    'erro',
-                    'Não foi possível validar a biometria.'
+                    'O campo corresponde deve ser '
+                    'verdadeiro ou falso.'
                 )
             },
             status=400
         )
 
-    if not resultado_biometria.get('corresponde'):
-        return JsonResponse(
-            {
-                'sucesso': False,
-                'erro': (
-                    'A digital informada não corresponde '
-                    f'a {funcionario.nome}.'
-                )
-            },
-            status=403
-        )
-
-    agora = timezone.now()
-
-    # A confirmação é feita em transação para impedir
-    # confirmação duplicada.
     with transaction.atomic():
 
-        entrega_referencia = (
-            EntregaEPI.objects
+        sessao = (
+            SessaoValidacaoBiometrica.objects
             .select_for_update()
-            .get(pk=entrega_referencia.pk)
+            .select_related(
+                'entrega',
+                'funcionario'
+            )
+            .get(pk=sessao_id)
         )
 
-        if entrega_referencia.confirmado:
+        if sessao.status != (
+            SessaoValidacaoBiometrica.Status.PENDENTE
+        ):
             return JsonResponse(
                 {
                     'sucesso': False,
-                    'erro': 'Esta entrega já foi confirmada.'
+                    'erro': 'Sessão já processada.'
                 },
                 status=409
             )
 
-        if entrega_referencia.token_confirmacao:
-
-            entregas = EntregaEPI.objects.filter(
-                token_confirmacao=(
-                    entrega_referencia.token_confirmacao
-                ),
-                funcionario=funcionario,
-                confirmado=False
+        if sessao.expirou():
+            sessao.status = (
+                SessaoValidacaoBiometrica.Status.EXPIRADA
+            )
+            sessao.save(
+                update_fields=['status']
             )
 
+            return JsonResponse(
+                {
+                    'sucesso': False,
+                    'erro': 'Sessão expirada.'
+                },
+                status=410
+            )
+
+        sessao.concluida_em = timezone.now()
+
+        if corresponde:
+            sessao.status = (
+                SessaoValidacaoBiometrica.Status.APROVADA
+            )
+            sessao.mensagem = 'Biometria confirmada.'
         else:
-            entregas = EntregaEPI.objects.filter(
-                pk=entrega_referencia.pk,
-                funcionario=funcionario,
-                confirmado=False
+            sessao.status = (
+                SessaoValidacaoBiometrica.Status.REJEITADA
+            )
+            sessao.mensagem = (
+                'A digital não corresponde ao funcionário.'
             )
 
-        quantidade_confirmada = entregas.update(
-            confirmado=True,
-            biometria_confirmada=True,
-            metodo_confirmacao='biometria',
-            data_confirmacao=agora,
-            ip_confirmacao=request.META.get(
-                'REMOTE_ADDR'
-            ),
-            user_agent_confirmacao=request.META.get(
-                'HTTP_USER_AGENT',
-                ''
-            )
+        sessao.save(
+            update_fields=[
+                'status',
+                'concluida_em',
+                'mensagem'
+            ]
         )
 
     return JsonResponse(
         {
             'sucesso': True,
-            'quantidade_confirmada': quantidade_confirmada,
-            'mensagem': (
-                f'Biometria de {funcionario.nome} confirmada. '
-                f'{quantidade_confirmada} EPI(s) '
-                'confirmado(s) com sucesso.'
+            'corresponde': corresponde
+        }
+    )
+    
+@require_GET
+def status_validacao_biometrica(
+    request,
+    sessao_id
+):
+
+    sessao = get_object_or_404(
+        SessaoValidacaoBiometrica.objects.select_related(
+            'entrega',
+            'funcionario'
+        ),
+        pk=sessao_id
+    )
+
+    if sessao.expirou() and sessao.status == (
+        SessaoValidacaoBiometrica.Status.PENDENTE
+    ):
+        sessao.status = (
+            SessaoValidacaoBiometrica.Status.EXPIRADA
+        )
+        sessao.save(
+            update_fields=['status']
+        )
+
+    if sessao.status == (
+        SessaoValidacaoBiometrica.Status.APROVADA
+    ):
+
+        agora = timezone.now()
+
+        with transaction.atomic():
+
+            sessao = (
+                SessaoValidacaoBiometrica.objects
+                .select_for_update()
+                .select_related(
+                    'entrega',
+                    'funcionario'
+                )
+                .get(pk=sessao.pk)
             )
+
+            if sessao.status == (
+                SessaoValidacaoBiometrica.Status.UTILIZADA
+            ):
+                return JsonResponse(
+                    {
+                        'sucesso': True,
+                        'status': 'utilizada',
+                        'mensagem': (
+                            'Entrega já confirmada.'
+                        )
+                    }
+                )
+
+            entrega = sessao.entrega
+
+            if entrega.token_confirmacao:
+                entregas = EntregaEPI.objects.filter(
+                    token_confirmacao=(
+                        entrega.token_confirmacao
+                    ),
+                    funcionario=sessao.funcionario,
+                    confirmado=False
+                )
+            else:
+                entregas = EntregaEPI.objects.filter(
+                    pk=entrega.pk,
+                    funcionario=sessao.funcionario,
+                    confirmado=False
+                )
+
+            quantidade = entregas.update(
+                confirmado=True,
+                biometria_confirmada=True,
+                metodo_confirmacao='biometria',
+                data_confirmacao=agora,
+                ip_confirmacao=sessao.ip_solicitante,
+                user_agent_confirmacao=(
+                    sessao.user_agent
+                )
+            )
+
+            sessao.status = (
+                SessaoValidacaoBiometrica.Status.UTILIZADA
+            )
+            sessao.save(
+                update_fields=['status']
+            )
+
+        return JsonResponse(
+            {
+                'sucesso': True,
+                'status': 'confirmada',
+                'mensagem': (
+                    f'Biometria de '
+                    f'{sessao.funcionario.nome} confirmada. '
+                    f'{quantidade} EPI(s) confirmado(s).'
+                )
+            }
+        )
+
+    return JsonResponse(
+        {
+            'sucesso': True,
+            'status': sessao.status,
+            'mensagem': sessao.mensagem
         }
     )
