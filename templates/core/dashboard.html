@@ -328,7 +328,6 @@
                             <th>EPI</th>
                             <th>Data</th>
                             <th>PDF</th>
-                            <th>QR</th>
                         </tr>
 
                     </thead>
@@ -362,19 +361,6 @@
                                 </a>
 
                             </td>
-
-                            <td>
-
-                                <a
-                                    href="{% url 'qr_confirmacao' entrega.id %}"
-                                    target="_blank"
-                                    class="btn btn-sm btn-secondary"
-                                >
-                                    QR
-                                </a>
-
-                            </td>
-
                         </tr>
 
                         {% empty %}

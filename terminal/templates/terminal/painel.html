@@ -35,9 +35,10 @@
                         </div>
                         <div class="mt-4">
                             <button
+                                type="button"
                                 class="btn btn-primary botao-confirmar btn-confirmar"
-                                data-id="{{ grupo.id_entrega }}"
-                                data-funcionario="{{ grupo.funcionario.nome }}"
+                                data-entrega-id="{{ grupo.id_entrega }}"
+                                data-funcionario-nome="{{ grupo.funcionario.nome }}"
                             >
                                 CONFIRMAR
                             </button>
@@ -56,61 +57,85 @@
     <div class="status-terminal">
         🟢 Terminal Online
     </div>
-    <div class="modal fade" id="modalConfirmacao" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title">
-                        🦺 Confirmação de Entrega
-                    </h3>
-                </div>
-                <div class="modal-body">
-                    <h4 id="modalFuncionario">
+    <div
+    class="modal fade"
+    id="modalBiometria"
+    tabindex="-1"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    🦺 Confirmação de Entrega
+                </h3>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Fechar"
+                ></button>
+            </div>
+
+            <div class="modal-body">
+
+                <h4>
+                    Funcionário:
+                    <strong id="nomeFuncionario">
                         Funcionário
-                    </h4>
-                    <hr>
-                    <h5>
-                        EPIs entregues
-                    </h5>
-                    <ul id="listaEpis" class="list-group mb-4">
-                    </ul>
-                    <div class="alert alert-warning">
-                        Declaro que recebi os EPIs acima relacionados em perfeito estado e me comprometo a utilizá-los durante minha jornada de trabalho.
-                    </div>
+                    </strong>
+                </h4>
+
+                <hr>
+
+                <h5>
+                    EPIs entregues
+                </h5>
+
+                <ul
+                    id="listaEpis"
+                    class="list-group mb-4"
+                ></ul>
+
+                <div class="alert alert-warning">
+                    Declaro que recebi os EPIs acima
+                    relacionados em perfeito estado e me
+                    comprometo a utilizá-los durante minha
+                    jornada de trabalho.
                 </div>
+
+                <div
+                    id="mensagemBiometria"
+                    class="alert d-none"
+                ></div>
+
+                </div>
+
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
                         Cancelar
                     </button>
-                    <button id="btnBiometria" class="btn btn-primary btn-lg">
+
+                    <button
+                        type="button"
+                        id="btnConfirmarBiometria"
+                        class="btn btn-primary btn-lg"
+                    >
                         🖐 Assinar com Digital
                     </button>
-                </div>
-                <div
-                    id="statusBiometria"
-                    class="text-center mt-3"
-                    style="display:none;"
-                >
-
-                    <div class="spinner-border text-primary mb-3"></div>
-
-                    <h4 class="text-primary">
-
-                        👆 Encoste seu dedo no leitor
-
-                    </h4>
-
-                    <p class="text-muted">
-
-                        Aguardando leitura biométrica...
-
-                    </p>
 
                 </div>
+
             </div>
         </div>
     </div>
-
 
     <input
         type="hidden"

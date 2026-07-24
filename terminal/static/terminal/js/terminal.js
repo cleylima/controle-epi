@@ -1,196 +1,342 @@
-const modal = new bootstrap.Modal(
-    document.getElementById("modalConfirmacao")
-);
+document.addEventListener("DOMContentLoaded", () => {
+    const LOCAL_BIOMETRIA_URL = "http://127.0.0.1:5055";
 
-let entregaSelecionada = null;
+    const modalElemento = document.getElementById("modalBiometria");
+    const modalBiometria = modalElemento
+        ? new bootstrap.Modal(modalElemento)
+        : null;
 
-document
-    .querySelectorAll(".btn-confirmar")
-    .forEach(botao => {
+    const nomeFuncionario = document.getElementById("nomeFuncionario");
+    const mensagemBiometria = document.getElementById("mensagemBiometria");
+    const botaoConfirmar = document.getElementById("btnConfirmarBiometria");
 
-        botao.addEventListener("click", function () {
+    let entregaSelecionada = null;
+    let sessaoAtual = null;
+    let consultaStatus = null;
 
-            entregaSelecionada = this.dataset.id;
+    function obterCookie(nome) {
+        const cookies = document.cookie
+            ? document.cookie.split(";")
+            : [];
 
-            document
-                .getElementById("modalFuncionario")
-                .innerText = this.dataset.funcionario;
+        for (const cookie of cookies) {
+            const parte = cookie.trim();
 
-            const lista =
-                document.getElementById("listaEpis");
-
-            lista.innerHTML = "";
-
-            const epis =
-                this.closest(".card")
-                    .querySelector(".lista-epis")
-                    .dataset.epis
-                    .split("|");
-
-            epis.forEach(function (epi) {
-
-                if (epi.trim() !== "") {
-
-                    lista.innerHTML += `
-                        <li class="list-group-item">
-                            🦺 ${epi}
-                        </li>
-                    `;
-
-                }
-
-            });
-
-            const botaoBiometria =
-                document.getElementById("btnBiometria");
-
-            const statusBiometria =
-                document.getElementById(
-                    "statusBiometria"
+            if (parte.startsWith(`${nome}=`)) {
+                return decodeURIComponent(
+                    parte.substring(nome.length + 1)
                 );
+            }
+        }
 
-            botaoBiometria.style.display =
-                "inline-block";
+        return null;
+    }
 
-            botaoBiometria.disabled = false;
+    function atualizarMensagem(texto, tipo = "info") {
+        if (!mensagemBiometria) {
+            return;
+        }
 
-            statusBiometria.style.display = "none";
-            statusBiometria.innerHTML = "";
+        mensagemBiometria.className = `alert alert-${tipo}`;
+        mensagemBiometria.textContent = texto;
+        mensagemBiometria.classList.remove("d-none");
+    }
 
-            modal.show();
+    function limparConsultaStatus() {
+        if (consultaStatus) {
+            clearInterval(consultaStatus);
+            consultaStatus = null;
+        }
+    }
 
-        });
+    function resetarModal() {
+        limparConsultaStatus();
 
-    });
+        entregaSelecionada = null;
+        sessaoAtual = null;
 
+        if (botaoConfirmar) {
+            botaoConfirmar.disabled = false;
+        }
 
-document
-    .getElementById("btnBiometria")
-    .addEventListener("click", function () {
+        if (mensagemBiometria) {
+            mensagemBiometria.classList.add("d-none");
+            mensagemBiometria.textContent = "";
+        }
+    }
 
-        this.style.display = "none";
-        this.disabled = true;
+    async function iniciarSessaoBiometrica() {
+        if (!entregaSelecionada) {
+            throw new Error("Entrega não selecionada.");
+        }
 
-        const statusBiometria =
-            document.getElementById(
-                "statusBiometria"
-            );
+        const resposta = await fetch(
+            "/terminal/biometria/iniciar/",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded",
+                    "X-CSRFToken":
+                        obterCookie("csrftoken")
+                },
+                body: new URLSearchParams({
+                    entrega: entregaSelecionada
+                })
+            }
+        );
 
-        statusBiometria.style.display = "block";
+        const dados = await resposta.json();
 
-        statusBiometria.innerHTML = `
-            <div class="alert alert-info">
-                Encoste o dedo cadastrado no leitor...
-            </div>
-        `;
-
-        validarBiometria();
-
-    });
-
-
-function validarBiometria() {
-
-    fetch("/terminal/validar-biometria/", {
-
-        method: "POST",
-
-        headers: {
-            "X-CSRFToken":
-                document.getElementById("csrf").value,
-
-            "Content-Type":
-                "application/x-www-form-urlencoded"
-        },
-
-        body:
-            "entrega=" +
-            encodeURIComponent(entregaSelecionada)
-
-    })
-
-    .then(async resposta => {
-
-        let dados;
-
-        try {
-            dados = await resposta.json();
-        } catch {
+        if (!resposta.ok || !dados.sucesso) {
             throw new Error(
-                "O servidor retornou uma resposta inválida."
+                dados.erro ||
+                "Não foi possível iniciar a validação biométrica."
             );
         }
 
-        if (!resposta.ok) {
+        sessaoAtual = dados.sessao;
+
+        return dados;
+    }
+
+    async function chamarServicoLocal(sessaoId) {
+        const resposta = await fetch(
+            `${LOCAL_BIOMETRIA_URL}/validar-sessao`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    sessao: sessaoId,
+                    origem: window.location.origin
+                })
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
             throw new Error(
                 dados.erro ||
-                "Não foi possível validar a biometria."
+                dados.mensagem ||
+                "Falha ao acessar o serviço biométrico local."
             );
         }
 
         return dados;
+    }
 
-    })
+    async function consultarStatus(sessaoId) {
+        const resposta = await fetch(
+            `/terminal/biometria/${sessaoId}/status/`,
+            {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        );
 
-    .then(dados => {
+        const dados = await resposta.json();
 
-        if (!dados.sucesso) {
+        if (!resposta.ok || !dados.sucesso) {
             throw new Error(
                 dados.erro ||
-                "Biometria não confirmada."
+                "Não foi possível consultar a validação."
             );
         }
 
-        document
-            .getElementById("statusBiometria")
-            .innerHTML = `
-                <div class="alert alert-success">
-                    Biometria confirmada com sucesso!
-                </div>
-            `;
+        return dados;
+    }
 
-        setTimeout(function () {
+    function acompanharStatus(sessaoId) {
+        limparConsultaStatus();
 
-            modal.hide();
+        consultaStatus = setInterval(async () => {
+            try {
+                const dados = await consultarStatus(sessaoId);
 
-            location.reload();
+                switch (dados.status) {
+                    case "pendente":
+                        atualizarMensagem(
+                            "Aguardando a leitura da digital...",
+                            "warning"
+                        );
+                        break;
 
-        }, 1200);
+                    case "confirmada":
+                    case "utilizada":
+                        limparConsultaStatus();
 
-    })
+                        atualizarMensagem(
+                            dados.mensagem ||
+                            "Entrega confirmada com sucesso.",
+                            "success"
+                        );
 
-    .catch(erro => {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1200);
+                        break;
 
-        console.error(erro);
+                    case "rejeitada":
+                        limparConsultaStatus();
 
-        document
-            .getElementById("statusBiometria")
-            .innerHTML = `
-                <div class="alert alert-danger">
-                    ${escaparHtml(erro.message)}
-                </div>
-            `;
+                        atualizarMensagem(
+                            dados.mensagem ||
+                            "A digital não corresponde ao funcionário.",
+                            "danger"
+                        );
 
-        const botaoBiometria =
-            document.getElementById("btnBiometria");
+                        if (botaoConfirmar) {
+                            botaoConfirmar.disabled = false;
+                        }
+                        break;
 
-        botaoBiometria.style.display =
-            "inline-block";
+                    case "expirada":
+                        limparConsultaStatus();
 
-        botaoBiometria.disabled = false;
+                        atualizarMensagem(
+                            "A sessão biométrica expirou. Tente novamente.",
+                            "danger"
+                        );
 
+                        if (botaoConfirmar) {
+                            botaoConfirmar.disabled = false;
+                        }
+                        break;
+
+                    default:
+                        atualizarMensagem(
+                            "Processando validação biométrica...",
+                            "info"
+                        );
+                        break;
+                }
+            } catch (erro) {
+                limparConsultaStatus();
+
+                atualizarMensagem(
+                    erro.message,
+                    "danger"
+                );
+
+                if (botaoConfirmar) {
+                    botaoConfirmar.disabled = false;
+                }
+            }
+        }, 1000);
+    }
+
+    async function executarValidacao() {
+        if (!entregaSelecionada) {
+            atualizarMensagem(
+                "Nenhuma entrega foi selecionada.",
+                "danger"
+            );
+            return;
+        }
+
+        if (botaoConfirmar) {
+            botaoConfirmar.disabled = true;
+        }
+
+        try {
+            atualizarMensagem(
+                "Criando sessão biométrica...",
+                "info"
+            );
+
+            const sessao = await iniciarSessaoBiometrica();
+
+            atualizarMensagem(
+                "Conectando ao leitor biométrico...",
+                "info"
+            );
+
+            await chamarServicoLocal(sessao.sessao);
+
+            atualizarMensagem(
+                "Coloque o dedo no leitor.",
+                "warning"
+            );
+
+            acompanharStatus(sessao.sessao);
+        } catch (erro) {
+            atualizarMensagem(
+                erro.message,
+                "danger"
+            );
+
+            if (botaoConfirmar) {
+                botaoConfirmar.disabled = false;
+            }
+        }
+    }
+
+    document
+    .querySelectorAll("[data-entrega-id]")
+    .forEach((botao) => {
+        botao.addEventListener("click", () => {
+            resetarModal();
+
+            entregaSelecionada =
+                botao.dataset.entregaId;
+
+            const funcionario =
+                botao.dataset.funcionarioNome ||
+                "Funcionário";
+
+            if (nomeFuncionario) {
+                nomeFuncionario.textContent =
+                    funcionario;
+            }
+
+            const card = botao.closest(".card-entrega");
+            const listaEpis =
+                document.getElementById("listaEpis");
+
+            if (listaEpis) {
+                listaEpis.innerHTML = "";
+
+                const elementosEpi =
+                    card?.querySelectorAll(
+                        ".lista-epis .epi-item"
+                    ) || [];
+
+                elementosEpi.forEach((elemento) => {
+                    const item =
+                        document.createElement("li");
+
+                    item.className =
+                        "list-group-item";
+
+                    item.textContent =
+                        elemento.textContent.trim();
+
+                    listaEpis.appendChild(item);
+                });
+            }
+
+            if (modalBiometria) {
+                modalBiometria.show();
+            }
+        });
     });
 
-}
+    if (botaoConfirmar) {
+        botaoConfirmar.addEventListener(
+            "click",
+            executarValidacao
+        );
+    }
 
-
-function escaparHtml(texto) {
-
-    const elemento =
-        document.createElement("div");
-
-    elemento.textContent = texto;
-
-    return elemento.innerHTML;
-
-}
+    if (modalElemento) {
+        modalElemento.addEventListener(
+            "hidden.bs.modal",
+            resetarModal
+        );
+    }
+});

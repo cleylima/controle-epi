@@ -88,94 +88,94 @@
 
 <body>
 
-<div class="sidebar">
+    <div class="sidebar">
 
-    <h4>🦺 Controle EPI</h4>
+        <h4>🦺 Controle EPI</h4>
 
-    <div class="text-center mb-4">
+        <div class="text-center mb-4">
 
-        <small class="text-muted">
-            Usuário Logado
-        </small>
+            <small class="text-muted">
+                Usuário Logado
+            </small>
 
-        <p class="fw-bold">
-            {{ request.user.username }}
-        </p>
+            <p class="fw-bold">
+                {{ request.user.username }}
+            </p>
+
+        </div>
+
+        <a href="/" class="{% if request.path == '/' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </a>
+
+        <a href="{% url 'listar_funcionarios' %}" class="{% if '/funcionarios/' in request.path %}active{% endif %}">
+            <i class="bi bi-people-fill"></i>
+            Funcionários
+        </a>
+
+        <a href="{% url 'listar_epis' %}" class="{% if request.path == '/estoque/' %}active{% endif %}">
+            <i class="bi bi-shield-check"></i>
+            EPIs
+        </a>
+        
+        <a href="{% url 'listar_entregas' %}" class="{% if '/entregas/' in request.path %}active{% endif %}">
+            <i class="bi bi-truck"></i>
+            Entregas
+        </a>
+        
+        <a href="{% url 'controle_estoque' %}" class="{% if '/estoque/controle/' in request.path %}active{% endif %}">
+            <i class="bi bi-box-seam"></i>
+            Estoque
+        </a>
+
+        <a href="{% url 'historico_movimentacoes' %}">
+            📋 Histórico Estoque
+        </a>
+
+
+        {% if user.groups.all %}
+
+            {% for grupo in user.groups.all %}
+
+                {% if grupo.name == 'Administrador' %}
+
+                    <a href="{% url 'listar_usuarios' %}">
+                        👤 Usuários
+                    </a>
+
+                {% endif %}
+
+            {% endfor %}
+
+        {% endif %}
+
+        <hr>
+
+            <form method="post"
+                action="{% url 'logout' %}"
+                class="px-3">
+
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="btn btn-danger w-100">
+
+                    Sair
+
+                </button>
+
+            </form>
 
     </div>
 
-    <a href="/" class="{% if request.path == '/' %}active{% endif %}">
-        <i class="bi bi-speedometer2"></i>
-        Dashboard
-    </a>
+    <div class="main-content">
 
-    <a href="{% url 'listar_funcionarios' %}" class="{% if '/funcionarios/' in request.path %}active{% endif %}">
-        <i class="bi bi-people-fill"></i>
-        Funcionários
-    </a>
+        {% block content %}
+        {% endblock %}
 
-    <a href="{% url 'listar_epis' %}" class="{% if request.path == '/estoque/' %}active{% endif %}">
-        <i class="bi bi-shield-check"></i>
-        EPIs
-    </a>
-    
-    <a href="{% url 'listar_entregas' %}" class="{% if '/entregas/' in request.path %}active{% endif %}">
-         <i class="bi bi-truck"></i>
-         Entregas
-    </a>
-    
-    <a href="{% url 'controle_estoque' %}" class="{% if '/estoque/controle/' in request.path %}active{% endif %}">
-        <i class="bi bi-box-seam"></i>
-        Estoque
-    </a>
-
-    <a href="{% url 'historico_movimentacoes' %}">
-        📋 Histórico Estoque
-    </a>
-
-
-    {% if user.groups.all %}
-
-        {% for grupo in user.groups.all %}
-
-            {% if grupo.name == 'Administrador' %}
-
-                <a href="{% url 'listar_usuarios' %}">
-                    👤 Usuários
-                </a>
-
-            {% endif %}
-
-        {% endfor %}
-
-    {% endif %}
-
-    <hr>
-
-        <form method="post"
-            action="{% url 'logout' %}"
-            class="px-3">
-
-            {% csrf_token %}
-
-            <button
-                type="submit"
-                class="btn btn-danger w-100">
-
-                Sair
-
-            </button>
-
-        </form>
-
-</div>
-
-<div class="main-content">
-
-    {% block content %}
-    {% endblock %}
-
-</div>
+    </div>
 
 </body>
 

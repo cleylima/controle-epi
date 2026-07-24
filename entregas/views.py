@@ -10,8 +10,8 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
-    Image
 )
+
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from django.utils import timezone
 from reportlab.lib import colors
@@ -27,9 +27,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from collections import OrderedDict
-
-import qrcode
-from io import BytesIO
 
 @login_required
 def listar_entregas(request):
@@ -823,28 +820,3 @@ def gerar_entrega_pdf(request, pk):
     documento.build(elementos)
 
     return response
-    
-@login_required
-def qr_confirmacao(request, pk):
-
-    entrega = get_object_or_404(
-        EntregaEPI,
-        pk=pk
-    )
-
-    url = (
-        request.build_absolute_uri('/')
-        .rstrip('/')
-        + f'/entregas/confirmar/{entrega.token_confirmacao}/'
-    )
-
-    qr = qrcode.make(url)
-
-    buffer = BytesIO()
-
-    qr.save(buffer, format='PNG')
-
-    return HttpResponse(
-        buffer.getvalue(),
-        content_type='image/png'
-    )

@@ -4,7 +4,6 @@ from .views import (
     listar_entregas,
     nova_entrega,
     gerar_entrega_pdf,
-    qr_confirmacao,
 )
 
 urlpatterns = [
@@ -26,12 +25,4 @@ urlpatterns = [
         gerar_entrega_pdf,
         name='gerar_entrega_pdf'
     ),
-    
-    
-    path(
-        'qr/<int:pk>/',
-        qr_confirmacao,
-        name='qr_confirmacao'
-    ),
-
 ]
