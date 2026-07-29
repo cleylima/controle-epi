@@ -6,3 +6,8 @@ db.sqlite3
 media/
 staticfiles/
 .vscode/
+.env
+staticfiles/
+media/
+__pycache__/
+*.pyc
