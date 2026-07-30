@@ -4,10 +4,29 @@ from django.shortcuts import (
     get_object_or_404
 )
 
+from django.db import models
 from .models import EPI, MovimentoEstoque
 from .forms import EPIForm
 from .forms_movimento import MovimentoEstoqueForm
 from django.contrib.auth.decorators import login_required
+
+from io import BytesIO
+
+from django.http import HttpResponse
+from django.utils import timezone
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.units import cm
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Table,
+    TableStyle,
+    Paragraph,
+    Spacer,
+)
 
 
 @login_required
@@ -246,5 +265,230 @@ def exportar_movimentacoes_excel(request):
     ] = 'attachment; filename=historico_estoque.xlsx'
 
     wb.save(response)
+
+    return response
+
+
+@login_required
+def gerar_pdf_estoque_baixo(request):
+    epis = EPI.objects.filter(
+        quantidade_estoque__lte=models.F("estoque_minimo")
+    ).order_by("nome")
+
+    buffer = BytesIO()
+
+    response = HttpResponse(
+        content_type="application/pdf"
+    )
+
+    nome_arquivo = timezone.localtime().strftime(
+        "estoque_baixo_%Y-%m-%d.pdf"
+    )
+
+    response["Content-Disposition"] = (
+        f'inline; filename="{nome_arquivo}"'
+    )
+
+    documento = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=1.5 * cm,
+        leftMargin=1.5 * cm,
+        topMargin=1.5 * cm,
+        bottomMargin=1.5 * cm,
+    )
+
+    estilos = getSampleStyleSheet()
+
+    estilo_titulo = ParagraphStyle(
+        "TituloPersonalizado",
+        parent=estilos["Title"],
+        alignment=TA_CENTER,
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor("#102239"),
+        spaceAfter=8,
+    )
+
+    estilo_subtitulo = ParagraphStyle(
+        "SubtituloPersonalizado",
+        parent=estilos["Normal"],
+        alignment=TA_CENTER,
+        fontSize=10,
+        textColor=colors.HexColor("#667085"),
+        spaceAfter=18,
+    )
+
+    estilo_rodape = ParagraphStyle(
+        "RodapePersonalizado",
+        parent=estilos["Normal"],
+        alignment=TA_CENTER,
+        fontSize=10,
+        textColor=colors.HexColor("#667085"),
+    )
+
+    elementos = []
+
+    elementos.append(
+        Paragraph(
+            "Relatório de EPIs com Estoque Baixo",
+            estilo_titulo,
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            (
+                "Itens com quantidade em estoque menor ou igual "
+                "ao estoque mínimo cadastrado."
+            ),
+            estilo_subtitulo,
+        )
+    )
+
+    data = [
+        [
+            "EPI",
+            "CA",
+            "Fabricante",
+            "Estoque atual",
+            "Estoque mínimo",
+        ]
+    ]
+
+    for epi in epis:
+        data.append(
+            [
+                epi.nome,
+                epi.ca or "-",
+                epi.fabricante or "-",
+                str(epi.quantidade_estoque),
+                str(epi.estoque_minimo),
+            ]
+        )
+
+    if len(data) == 1:
+        elementos.append(
+            Paragraph(
+                "Nenhum EPI com estoque baixo foi encontrado.",
+                estilos["Normal"],
+            )
+        )
+    else:
+        tabela = Table(
+            data,
+            colWidths=[
+                5.0 * cm,
+                2.2 * cm,
+                3.5 * cm,
+                2.5 * cm,
+                3.2 * cm,
+            ],
+            repeatRows=1,
+        )
+
+        tabela.setStyle(
+            TableStyle(
+                [
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (-1, 0),
+                        colors.HexColor("#007D53"),
+                    ),
+                    (
+                        "TEXTCOLOR",
+                        (0, 0),
+                        (-1, 0),
+                        colors.white,
+                    ),
+                    (
+                        "FONTNAME",
+                        (0, 0),
+                        (-1, 0),
+                        "Helvetica-Bold",
+                    ),
+                    (
+                        "FONTSIZE",
+                        (0, 0),
+                        (-1, 0),
+                        9,
+                    ),
+                    (
+                        "ALIGN",
+                        (3, 0),
+                        (4, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "GRID",
+                        (0, 0),
+                        (-1, -1),
+                        0.5,
+                        colors.HexColor("#D0D5DD"),
+                    ),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [
+                            colors.white,
+                            colors.HexColor("#F8FAFC"),
+                        ],
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        6,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        6,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        7,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        7,
+                    ),
+                ]
+            )
+        )
+
+        elementos.append(tabela)
+
+    elementos.append(Spacer(1, 14))
+
+    elementos.append(
+        Paragraph(
+            (
+                "Relatório gerado em "
+                f"{timezone.localtime().strftime('%d/%m/%Y às %H:%M')}."
+            ),
+            estilo_rodape,
+        )
+    )
+
+    documento.build(elementos)
+
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    response.write(pdf)
 
     return response

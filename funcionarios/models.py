@@ -5,6 +5,14 @@ class Funcionario(models.Model):
     nome = models.CharField(
         max_length=150
     )
+    
+    cpf = models.CharField(
+        max_length=14,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="CPF"
+    )
 
     email = models.EmailField(
         blank=True,

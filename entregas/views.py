@@ -129,25 +129,43 @@ def nova_entrega(request):
 
             for item in itens:
 
-                epi = EPI.objects.get(pk=item["epi_id"])
+                epi = get_object_or_404(
+                    EPI,
+                    pk=item["epi_id"]
+                )
                 quantidade = int(item["quantidade"])
 
                 # Validação de estoque
-                if quantidade > epi.quantidade_estoque:
+                if epi.quantidade_estoque <= 0:
 
                     form.add_error(
                         None,
-                        f'O EPI "{epi.nome}" não possui estoque suficiente.'
+                        f'O EPI "{epi.nome}" está sem estoque.'
                     )
 
                     return render(
                         request,
-                        'entregas/nova.html',
+                        "entregas/form.html",
+                        {"form": form}
+                    )
+
+                if quantidade > epi.quantidade_estoque:
+
+                    form.add_error(
+                        None,
+                        (
+                            f'O EPI "{epi.nome}" não possui estoque suficiente. '
+                            f'Disponível: {epi.quantidade_estoque} unidade(s).'
+                        )
+                    )
+
+                    return render(
+                        request,
+                        'entregas/form.html',
                         {
                             'form': form
                         }
                     )
-
                 # Baixa estoque
                 epi.quantidade_estoque -= quantidade
                 epi.save()
