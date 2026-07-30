@@ -16,9 +16,9 @@ from django.http import HttpResponse
 from django.utils import timezone
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.units import cm
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -291,7 +291,7 @@ def gerar_pdf_estoque_baixo(request):
 
     documento = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
+        pagesize=landscape(A4),
         rightMargin=1.5 * cm,
         leftMargin=1.5 * cm,
         topMargin=1.5 * cm,
@@ -315,8 +315,42 @@ def gerar_pdf_estoque_baixo(request):
         parent=estilos["Normal"],
         alignment=TA_CENTER,
         fontSize=10,
+        leading=14,
         textColor=colors.HexColor("#667085"),
         spaceAfter=18,
+    )
+
+    estilo_celula = ParagraphStyle(
+        "CelulaTabela",
+        parent=estilos["Normal"],
+        fontName="Helvetica",
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#101828"),
+        alignment=TA_LEFT,
+        wordWrap="CJK",
+    )
+
+    estilo_celula_centro = ParagraphStyle(
+        "CelulaTabelaCentro",
+        parent=estilo_celula,
+        alignment=TA_CENTER,
+    )
+
+    estilo_cabecalho = ParagraphStyle(
+        "CabecalhoTabela",
+        parent=estilos["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=9,
+        leading=11,
+        textColor=colors.white,
+        alignment=TA_LEFT,
+    )
+
+    estilo_cabecalho_centro = ParagraphStyle(
+        "CabecalhoTabelaCentro",
+        parent=estilo_cabecalho,
+        alignment=TA_CENTER,
     )
 
     estilo_rodape = ParagraphStyle(
@@ -348,22 +382,37 @@ def gerar_pdf_estoque_baixo(request):
 
     data = [
         [
-            "EPI",
-            "CA",
-            "Fabricante",
-            "Estoque atual",
-            "Estoque mínimo",
+            Paragraph("EPI", estilo_cabecalho),
+            Paragraph("CA", estilo_cabecalho_centro),
+            Paragraph("Fabricante", estilo_cabecalho),
+            Paragraph("Estoque atual", estilo_cabecalho_centro),
+            Paragraph("Estoque mínimo", estilo_cabecalho_centro),
         ]
     ]
 
     for epi in epis:
         data.append(
             [
-                epi.nome,
-                epi.ca or "-",
-                epi.fabricante or "-",
-                str(epi.quantidade_estoque),
-                str(epi.estoque_minimo),
+                Paragraph(
+                    str(epi.nome or "-"),
+                    estilo_celula,
+                ),
+                Paragraph(
+                    str(epi.ca or "-"),
+                    estilo_celula_centro,
+                ),
+                Paragraph(
+                    str(epi.fabricante or "-"),
+                    estilo_celula,
+                ),
+                Paragraph(
+                    str(epi.quantidade_estoque),
+                    estilo_celula_centro,
+                ),
+                Paragraph(
+                    str(epi.estoque_minimo),
+                    estilo_celula_centro,
+                ),
             ]
         )
 
@@ -378,13 +427,14 @@ def gerar_pdf_estoque_baixo(request):
         tabela = Table(
             data,
             colWidths=[
-                5.0 * cm,
-                2.2 * cm,
-                3.5 * cm,
-                2.5 * cm,
+                7.0 * cm,
+                2.3 * cm,
+                7.0 * cm,
+                3.0 * cm,
                 3.2 * cm,
             ],
             repeatRows=1,
+            hAlign="CENTER",
         )
 
         tabela.setStyle(
@@ -401,24 +451,6 @@ def gerar_pdf_estoque_baixo(request):
                         (0, 0),
                         (-1, 0),
                         colors.white,
-                    ),
-                    (
-                        "FONTNAME",
-                        (0, 0),
-                        (-1, 0),
-                        "Helvetica-Bold",
-                    ),
-                    (
-                        "FONTSIZE",
-                        (0, 0),
-                        (-1, 0),
-                        9,
-                    ),
-                    (
-                        "ALIGN",
-                        (3, 0),
-                        (4, -1),
-                        "CENTER",
                     ),
                     (
                         "VALIGN",
